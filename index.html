@@ -2,9 +2,42 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>FF14 Simulator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FF14 Skill Rotation Simulator</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+  <main class="app">
+    <section class="panel">
+      <h1>FF14 スキル回しシミュレーター MVP</h1>
 
+      <div class="status-grid">
+        <div class="status-card">
+          <span class="status-label">合計威力</span>
+          <strong id="totalPotency">0</strong>
+        </div>
+
+        <div class="status-card">
+          <span class="status-label">現在のコンボstep</span>
+          <strong id="comboStep">0</strong>
+        </div>
+      </div>
+
+      <section class="section-block">
+        <h2>スキル</h2>
+        <div id="skillButtons" class="skill-buttons"></div>
+      </section>
+
+      <section class="section-block">
+        <h2>履歴ログ</h2>
+        <ol id="historyLog" class="history-log"></ol>
+      </section>
+    </section>
+  </main>
+
+  <script src="js/skills.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/ui.js"></script>
 </body>
 </html>
