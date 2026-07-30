@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FF14 Skill Rotation Simulator</title>
+  <title>シミュレーター</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <main class="app">
     <section class="panel">
-      <h1>FF14 スキル回しシミュレーター MVP</h1>
+      <h1>シミュレーター</h1>
 
       <div class="status-grid">
         <div class="status-card">
@@ -18,13 +18,16 @@
         </div>
 
         <div class="status-card">
-          <span class="status-label">現在のコンボstep</span>
+          <span class="status-label">現在のコンボ段階</span>
           <strong id="comboStep">0</strong>
         </div>
       </div>
 
       <section class="section-block">
-        <h2>スキル</h2>
+        <div class="section-header">
+          <h2>スキル</h2>
+          <button id="resetButton" class="reset-button" type="button">リセット</button>
+        </div>
         <div id="skillButtons" class="skill-buttons"></div>
       </section>
 

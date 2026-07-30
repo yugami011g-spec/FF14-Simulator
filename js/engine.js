@@ -1,7 +1,7 @@
-// 指定されたスキルが現在のコンボ状態に合っているかを判定します。
+// 指定されたスキルが現在のコンボ状態に合っているか判定します。
 function isComboSuccess(skill) {
   // requiredComboStep がないスキルは、コンボ条件なしで使えるスキルです。
-  if (skill.requiredComboStep === undefined) {
+  if (skill.requiredComboStep === null || skill.requiredComboStep === undefined) {
     return false;
   }
 
@@ -17,14 +17,14 @@ function calculatePotency(skill) {
   return skill.potency;
 }
 
-// スキル使用後のコンボstepを決めます。
+// スキル使用後のコンボ段階を決めます。
 function getNextComboStep(skill) {
   // 1段目はいつ押してもコンボ開始として扱います。
   if (skill.comboStep === 1) {
     return 1;
   }
 
-  // 2段目以降は、コンボ成功時だけ次のstepへ進みます。
+  // 2段目以降は、コンボ成功時だけ次の段階へ進みます。
   if (isComboSuccess(skill)) {
     return skill.comboStep;
   }
@@ -35,10 +35,10 @@ function getNextComboStep(skill) {
 
 // 画面のボタンから呼ばれる、スキル使用処理の入口です。
 function useSkill(skillId) {
-  // skills オブジェクトから、押されたスキルIDに対応するデータを取得します。
+  // skills から、押されたスキルIDに対応するデータを取得します。
   const skill = skills[skillId];
 
-  // 存在しないスキルIDが渡された場合は、何もせずに処理を終えます。
+  // 存在しないスキルIDなら、状態を変えずに処理を終えます。
   if (!skill) {
     return;
   }
@@ -49,10 +49,10 @@ function useSkill(skillId) {
   // 合計威力へ今回の威力を加算します。
   state.totalPotency += potency;
 
-  // スキル使用後のコンボstepへ更新します。
+  // スキル使用後のコンボ段階へ更新します。
   state.comboStep = getNextComboStep(skill);
 
-  // 後から画面に表示できるように、使用履歴を保存します。
+  // 画面に表示できるように、使用履歴を保存します。
   state.history.push({
     skillName: skill.name,
     potency: potency,
@@ -60,6 +60,16 @@ function useSkill(skillId) {
     comboStep: state.comboStep
   });
 
-  // 状態が変わったので、画面表示を最新の状態に更新します。
+  // 状態が変わったので、画面表示を更新します。
+  render();
+}
+
+// シミュレーターの状態を初期値に戻します。
+function resetSimulator() {
+  state.totalPotency = 0;
+  state.comboStep = 0;
+  state.history = [];
+
+  // リセット後の状態を画面へ反映します。
   render();
 }
