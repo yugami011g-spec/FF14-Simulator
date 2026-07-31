@@ -80,7 +80,9 @@ The goal is to let users test skill rotations, combo success, potency totals, an
 - The first screen should be the simulator itself, not a landing page.
 - Keep controls clear and compact.
 - Make buttons large enough to use comfortably.
-- Make the history log easy to scan.
+- Treat the current Figma design state as the UI source of truth when implementation details differ from older notes.
+- Use the timeline as the primary review surface; do not reintroduce a separate history log unless the user asks for it.
+- Keep explanatory text out of the main UI. Prefer labels, numbers, icons, state styling, and layout.
 - Support mobile layouts.
 - Do not add decorative UI that makes the simulator harder to use.
 
@@ -110,7 +112,7 @@ After changes, verify the following manually:
 2. Skill buttons render.
 3. Clicking a skill updates total potency.
 4. Combo skills use combo potency only when the combo condition is met.
-5. History entries are added in order.
+5. Timeline actions are added in order.
 6. Reset or undo features work if they were changed.
 7. Japanese text displays correctly.
 
@@ -138,4 +140,4 @@ After changes, verify the following manually:
 
 ## Recommended Next Task
 
-Implement the first timeline-based state model for the Reaper MVP: elapsed time, timestamped history, GCD handling, and recast-ready display.
+Implement the first timeline-based state model for the Reaper MVP: elapsed time, timeline actions, GCD handling, and recast-ready display.
