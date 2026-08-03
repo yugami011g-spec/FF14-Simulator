@@ -1,46 +1,12 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>シミュレーター</title>
-  <link rel="stylesheet" href="css/style.css">
-</head>
-<body>
-  <main class="app">
-    <section class="panel">
-      <h1>シミュレーター</h1>
-
-      <div class="status-grid">
-        <div class="status-card">
-          <span class="status-label">合計威力</span>
-          <strong id="totalPotency">0</strong>
-        </div>
-
-        <div class="status-card">
-          <span class="status-label">現在のコンボ段階</span>
-          <strong id="comboStep">0</strong>
-        </div>
-      </div>
-
-      <section class="section-block">
-        <div class="section-header">
-          <h2>スキル</h2>
-          <button id="resetButton" class="reset-button" type="button">リセット</button>
-        </div>
-        <div id="skillButtons" class="skill-buttons"></div>
-      </section>
-
-      <section class="section-block">
-        <h2>履歴ログ</h2>
-        <ol id="historyLog" class="history-log"></ol>
-      </section>
-    </section>
-  </main>
-
-  <script src="js/skills.js"></script>
-  <script src="js/state.js"></script>
-  <script src="js/engine.js"></script>
-  <script src="js/ui.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>リーパー時間軸シミュレーター</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>

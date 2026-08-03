@@ -1,0 +1,272 @@
+:root {
+  --background: #f8f9fa;
+  --surface: #ffffff;
+  --border: #dadce0;
+  --border-strong: #bdc1c6;
+  --text: #3c4043;
+  --muted: #5f6368;
+  --blue: #1a73e8;
+  --danger: #c54c5b;
+  --combo: #f26922;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  color: var(--text);
+  background: var(--background);
+  font-family: "IBM Plex Sans JP", "Noto Sans JP", system-ui, sans-serif;
+}
+
+button, output { font: inherit; }
+
+.app {
+  width: min(1440px, 100%);
+  margin: 0 auto;
+  padding: 20px 32px 40px;
+}
+
+.app-header {
+  display: flex;
+  min-height: 56px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+h1, h2, h3, p { margin: 0; }
+h1 { font-size: 24px; line-height: 35px; }
+h2 { font-size: 17px; line-height: 25px; }
+h3 { margin-bottom: 14px; font-size: 12px; font-weight: 500; }
+
+.panel {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.panel-header {
+  display: flex;
+  min-height: 56px;
+  padding: 0 18px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-body { padding: 24px 18px; }
+
+.button {
+  min-height: 30px;
+  padding: 5px 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  color: var(--text);
+  background: #fff;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.button:hover:not(:disabled) { background: #f1f3f4; }
+.button:disabled { color: #9aa0a6; cursor: not-allowed; }
+.button-danger { min-width: 96px; border-color: var(--danger); color: var(--danger); }
+.button-small { min-width: 84px; }
+
+.timeline-panel { min-height: 380px; margin-top: 20px; }
+.timeline-header { padding: 0 20px; }
+.timeline-settings { display: flex; align-items: center; gap: 16px; }
+.timeline-summary { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px 16px; font-size: 14px; }
+.timeline-summary span { white-space: nowrap; font-weight: 500; }
+.timeline-summary strong { font-weight: 500; }
+.timeline-body { display: flex; align-items: flex-start; }
+.timeline-row-labels {
+  flex: 0 0 54px;
+  width: 54px;
+  padding-top: 32px;
+  border-right: 1px solid #e8eaed;
+  background: var(--surface);
+}
+.timeline-row-labels-spacer { height: 36px; }
+.timeline-row-label {
+  display: flex;
+  box-sizing: border-box;
+  height: 62px;
+  align-items: center;
+  justify-content: flex-end;
+  overflow: hidden;
+  padding-right: 8px;
+  padding-left: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.3;
+  text-align: right;
+  white-space: normal;
+  word-break: keep-all;
+}
+.timeline-row-label-effect { height: 76px; }
+.timeline-scroll { flex: 1 1 auto; min-width: 0; overflow-x: auto; padding: 32px 18px 0; cursor: grab; }
+.timeline-scroll.is-panning { cursor: grabbing; }
+.timeline-chart { position: relative; min-width: 1254px; height: 276px; user-select: none; -webkit-user-select: none; }
+/* 目盛り／軸／トラックの幅は、末尾のアクションアイコンがはみ出さないよう右へ48px分(js/ui.js の TIMELINE_RIGHT_MARGIN と対)狭めています。 */
+.timeline-ticks { position: relative; width: calc(100% - 48px); height: 34px; cursor: ew-resize; touch-action: none; }
+.timeline-tick { position: absolute; top: 0; color: var(--muted); font-size: 10px; transform: translateX(-50%); }
+.timeline-tick::after { content: ""; position: absolute; top: 24px; left: 50%; width: 1px; height: 164px; background: rgba(218,220,224,.7); }
+.timeline-axis { width: calc(100% - 48px); height: 2px; background: var(--border-strong); }
+.timeline-row { height: 62px; }
+.timeline-row-effect { height: 76px; }
+.timeline-track { position: relative; width: calc(100% - 48px); height: 100%; }
+/* 区切り線は行(.timeline-row)ではなくトラック(目盛りと同じ calc(100% - 48px) 幅)に付けることで、
+   末尾の余白(TIMELINE_RIGHT_MARGIN)へ線がはみ出して見えないようにします。 */
+.timeline-row-gcd .timeline-track, .timeline-row-ability .timeline-track { border-bottom: 1px solid #e8eaed; }
+/* アイコン自体に縁取りがあるため、通常時の枠線は透明にします(ドラッグ中/ホバー時の
+   色付き枠は残せるよう、0pxではなくtransparentにしています)。 */
+.timeline-action { position: absolute; top: 8px; display: grid; width: 44px; height: 44px; padding: 4px; place-items: center; border: 1px solid transparent; border-radius: 8px; color: var(--text); background: #fff; font-size: 9px; line-height: 11px; text-align: center; cursor: grab; touch-action: none; transform: translateX(-1px); transition: transform .12s ease, box-shadow .12s ease; }
+.timeline-action:hover { border-color: var(--blue); }
+.timeline-action.has-clipping { box-shadow: inset 0 -3px var(--danger); }
+/* 削除はタイル本体のクリックではなく、ホバー時だけ現れるこの×ボタンから行います
+   (つまんで移動しようとした際の誤操作での削除を防ぐため)。 */
+.timeline-action-delete { position: absolute; top: -7px; right: -7px; z-index: 6; display: none; align-items: center; justify-content: center; width: 16px; height: 16px; border: 1px solid #fff; border-radius: 50%; background: var(--danger); color: #fff; font-size: 11px; line-height: 1; cursor: pointer; }
+.timeline-action:hover .timeline-action-delete { display: flex; }
+.timeline-action.is-dragging .timeline-action-delete { display: none; }
+.timeline-action.is-dragging { z-index: 5; cursor: grabbing; border-color: var(--blue); color: var(--text); transform: translateX(-1px) scale(1.15); box-shadow: 0 14px 22px rgba(0,0,0,.32); }
+.timeline-row-ability .timeline-action { width: 34px; height: 34px; border-radius: 6px; background: #f0f0ec; font-size: 8px; }
+/* GCD行(62px)+行間ボーダー(1px)+アビリティ行(62px)にまたがるよう、高さを2行分ぶん確保します。
+   待機はGCD/アビリティ両方の入力を止めるため、GCD行だけにかかっているように見えないようにする調整です。 */
+.timeline-action.is-wait { top: 8px; height: 109px; align-items: start; border: 1px dashed var(--border-strong); border-radius: 14px; background: repeating-linear-gradient(45deg, #f1f3f4, #f1f3f4 6px, #e8eaed 6px, #e8eaed 12px); color: var(--muted); font-size: 9px; font-weight: 500; white-space: nowrap; overflow: hidden; padding-top: 8px; }
+.timeline-action.is-wait.is-dragging { transform: none; border-color: var(--blue); box-shadow: 0 10px 16px rgba(0,0,0,.28); }
+.timeline-drop-indicator { position: absolute; top: 0; z-index: 4; width: 2px; height: 100%; background: var(--blue); pointer-events: none; }
+.drag-ghost { position: fixed; z-index: 40; pointer-events: none; transform: translate(-50%, -50%) scale(1.1) rotate(-2deg); }
+.drag-ghost[hidden] { display: none; }
+.drag-ghost-icon { position: relative; display: grid; width: 48px; height: 48px; padding: 4px; place-items: center; border: 1px solid var(--blue); border-radius: 8px; background: #fff; color: var(--text); font-size: 9px; font-weight: 500; line-height: 1.2; text-align: center; box-shadow: 0 14px 24px rgba(0,0,0,.35); }
+.drag-ghost-icon img { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 7px; object-fit: cover; }
+.skill-button.is-dragging { touch-action: none; opacity: .5; }
+.timeline-effect-empty::after { content: "効果データなし"; position: absolute; top: 12px; left: 8px; color: #9aa0a6; font-size: 10px; }
+.timeline-effect-empty.has-effects::after { content: none; }
+/* top はJS側(assignEffectLanes)がレーン番号に応じて個別に設定します。 */
+.timeline-effect { position: absolute; height: 18px; padding: 2px 7px; overflow: hidden; border: 1px solid var(--border-strong); border-radius: 4px; font-size: 9px; line-height: 12px; white-space: nowrap; }
+.timeline-effect-debuff { background: rgba(232,234,237,.95); color: var(--text); }
+.timeline-effect-buff { border-color: var(--blue); background: rgba(232,240,254,.95); color: #174ea6; }
+.time-indicator { position: absolute; z-index: 2; top: -12px; bottom: 16px; left: 0; width: 10px; margin-left: -4px; background: linear-gradient(90deg, transparent 4px, var(--blue) 4px, var(--blue) 6px, transparent 6px); cursor: ew-resize; touch-action: none; }
+.time-indicator::before { content: ""; position: absolute; top: 8px; left: 1px; width: 8px; height: 8px; border-radius: 50%; background: var(--blue); }
+.time-indicator span { position: absolute; top: -9px; left: 50%; padding: 1px 4px; background: #fff; color: var(--text); font-size: 10px; white-space: nowrap; transform: translateX(-50%); }
+.time-indicator.is-previewing, .time-indicator.is-dragging { background: linear-gradient(90deg, transparent 4px, var(--blue) 4px, var(--blue) 6px, transparent 6px); }
+.time-indicator.is-previewing::before { background: var(--blue); }
+.combat-start-marker { position: absolute; z-index: 1; top: -12px; bottom: 16px; left: 0; width: 2px; background: var(--combo); pointer-events: none; }
+.combat-start-marker span { position: absolute; top: -9px; left: 50%; padding: 1px 4px; background: var(--combo); color: #fff; font-size: 10px; white-space: nowrap; transform: translateX(-50%); border-radius: 3px; }
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 250px minmax(520px, 700px) minmax(300px, 378px);
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.gauge-block + .gauge-block { margin-top: 28px; }
+.gauge-label { display: flex; justify-content: space-between; margin-bottom: 9px; font-size: 12px; }
+.gauge-label strong { color: var(--muted); font-size: 10px; font-weight: 400; }
+.gauge-bar { height: 18px; overflow: hidden; border: 1px solid var(--border); border-radius: 4px; background: #f1f3f4; }
+.gauge-bar span { display: block; height: 100%; background: var(--blue); }
+.gauge-bar-dark span { background: var(--text); }
+.stack-block { margin-top: 44px; }
+.stack-block > span { display: block; margin: 14px 0 10px; font-size: 11px; }
+.stack-dots { display: flex; gap: 10px; }
+.stack-dots i { width: 18px; height: 18px; border: 1px solid var(--border-strong); border-radius: 6px; background: #fff; }
+.stack-dots i.is-active { border-color: var(--blue); background: var(--blue); }
+/* レムール(残り)は青、ヴォイド(消費済み)は濃いグレーで塗り分けます。合計は常に5になります。 */
+.stack-dots i.is-void { border-color: var(--text); background: var(--text); }
+
+.skill-settings { display: flex; align-items: center; gap: 16px; }
+.gcd-setting { display: flex; align-items: center; gap: 10px; font-size: 10px; }
+.gcd-setting input { width: 64px; padding: 7px 12px; border: 1px solid var(--border); border-radius: 6px; text-align: center; font: inherit; }
+.lead-in-setting { display: flex; align-items: center; gap: 6px; font-size: 10px; }
+.lead-in-setting input { width: 56px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; text-align: center; font: inherit; }
+.skill-category + .skill-category { margin-top: 14px; }
+.action-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.action-tile { position: relative; display: flex; width: 58px; height: 78px; padding: 0; flex-direction: column; align-items: stretch; border: 0; color: var(--text); background: transparent; cursor: pointer; }
+/* スキルボタンはアイコンのみで完結する(種別文字・チャージ分数の下段表示を廃止した)ため、
+   下段の<small>ぶんの高さを持たない待機ボタン等と違い、アイコン分の高さだけにします。
+   アイコン自体も少し小さめの48pxにしています。 */
+.action-tile.skill-button { width: 48px; height: 48px; }
+.action-tile.skill-button strong { width: 48px; height: 48px; }
+.action-tile strong { position: relative; display: grid; width: 58px; height: 58px; padding: 5px; place-items: center; border: 1px solid transparent; border-radius: 6px; background: #fff; font-size: 10px; font-weight: 500; line-height: 12px; }
+.skill-icon { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 5px; object-fit: cover; transition: filter .12s ease; }
+.skill-name-fallback { position: relative; }
+/* リキャスト(次に使えるまでの残り秒数)は、アイコン中央へ大きく重ねて表示します。 */
+.recast-time { position: absolute; inset: 0; z-index: 2; display: flex; align-items: center; justify-content: center; border-radius: 5px; color: #fff; font-size: 13px; font-weight: 700; line-height: 1; text-shadow: 0 1px 3px rgba(0,0,0,.85); pointer-events: none; }
+.recast-time:empty { display: none; }
+/* チャージ(スタック)残数は、アイコン右下に小さいバッジとして重ねます。 */
+.charge-badge { position: absolute; z-index: 3; right: -4px; bottom: -4px; min-width: 16px; height: 16px; padding: 0 3px; border-radius: 8px; background: #24292e; color: #fff; font-size: 9px; font-weight: 700; line-height: 16px; text-align: center; pointer-events: none; }
+.charge-badge:empty { display: none; }
+.action-tile small { padding-top: 5px; color: var(--muted); font-size: 9px; text-align: left; }
+/* ホバー時に枠線は付けません(見た目のノイズになるため)。淡い背景だけで反応を示します。 */
+.action-tile:hover strong { background: #f8fbff; }
+/* 威力アップ/コンボ成立中のアイコンは、枠線ではなく発光するリングで目立たせます。 */
+.action-tile.is-combo strong { box-shadow: 0 0 0 2px var(--combo), 0 0 10px 1px rgba(242,105,34,.7); }
+.action-tile.is-replaced strong { box-shadow: inset 0 0 0 1px var(--blue); }
+/* 実行不可(個別リキャスト中・チャージ切れ・ゲージ/条件不足)のアクションは、アイコンを
+   はっきり暗くして一目で分かるようにします。 */
+.action-tile.is-cooling strong { background: #cfd3d8; }
+.action-tile.is-cooling .skill-icon { filter: brightness(.42) saturate(.7); }
+.action-tile.is-cooling:hover .skill-icon { filter: brightness(.55) saturate(.8); }
+.action-tile.is-previewing { opacity: .8; }
+.action-tile:disabled { cursor: not-allowed; }
+.action-tile:disabled strong { color: #9aa0a6; background: #e8eaed; }
+.action-message { min-height: 18px; margin-top: 6px; color: var(--danger); font-size: 11px; }
+
+.skill-tooltip {
+  position: fixed;
+  z-index: 30;
+  width: 220px;
+  padding: 10px 12px;
+  border: 1px solid #3c4043;
+  border-radius: 6px;
+  background: #24292e;
+  color: #e8eaed;
+  font-size: 11px;
+  line-height: 1.6;
+  box-shadow: 0 6px 16px rgba(0,0,0,.3);
+  pointer-events: none;
+}
+.skill-tooltip[hidden] { display: none; }
+.skill-tooltip-title { margin-bottom: 4px; font-size: 12px; font-weight: 600; color: #fff; }
+.skill-tooltip-status { margin-bottom: 6px; font-weight: 500; }
+.skill-tooltip-status.is-ready { color: #81c995; }
+.skill-tooltip-status.is-blocked { color: #f6a97a; }
+.skill-tooltip-line { color: #bdc1c6; }
+.skill-tooltip-requirement { color: #f6a97a; }
+.skill-tooltip-effect { color: #8ab4f8; }
+
+.status-panel .panel-body { min-height: 410px; }
+.status-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 8px; }
+.status-row { display: flex; min-height: 28px; padding: 6px 8px; align-items: center; justify-content: space-between; gap: 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 10px; }
+.status-row strong { color: var(--muted); font-weight: 400; }
+.status-subheading { margin-top: 44px; }
+.status-row.is-active { background: rgba(232,240,254,.85); }
+
+@media (max-width: 1080px) {
+  .dashboard-grid { grid-template-columns: 220px minmax(0, 1fr); }
+  .status-panel { grid-column: 1 / -1; }
+  .status-panel .panel-body { min-height: auto; }
+}
+
+@media (max-width: 720px) {
+  .app { padding: 16px; }
+  h1 { font-size: 20px; }
+  .timeline-panel { margin-top: 12px; }
+  .timeline-header { align-items: flex-start; flex-direction: column; padding: 12px 16px; }
+  .timeline-summary { width: 100%; gap: 12px; justify-content: space-between; font-size: 11px; }
+  .timeline-summary { justify-content: flex-start; }
+  .timeline-summary .button { min-width: auto; padding: 4px 8px; }
+  .header-actions .button { min-width: auto; padding: 4px 8px; }
+  .timeline-panel { min-height: 410px; }
+  .dashboard-grid { grid-template-columns: 1fr; gap: 12px; margin-top: 12px; }
+  .status-panel { grid-column: auto; }
+  .gauge-panel { order: 2; }
+  .skills-panel { order: 1; }
+  .status-panel { order: 3; }
+  .status-grid { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>リーパー時間軸シミュレーター</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main class="app">
+    <header class="app-header">
+      <h1>リーパー時間軸シミュレーター</h1>
+      <div class="header-actions">
+        <button id="saveButton" class="button button-small" type="button">保存</button>
+        <button id="loadButton" class="button button-small" type="button">読込</button>
+        <button id="resetButton" class="button button-danger" type="button">リセット</button>
+      </div>
+    </header>
+
+    <section class="panel timeline-panel">
+      <header class="panel-header timeline-header">
+        <h2>タイムライン</h2>
+        <div class="timeline-settings">
+          <label class="lead-in-setting">カウント <input type="number" id="leadInInput" min="0" max="30" step="1" value="0">秒</label>
+          <label class="lead-in-setting">戦闘時間 <input type="text" id="combatDurationInput" placeholder="無制限" inputmode="numeric" value=""></label>
+        </div>
+        <div class="timeline-summary">
+          <button id="returnLatestButton" class="button button-small" type="button" hidden>最新へ戻る</button>
+          <span>表示位置 <strong id="elapsedTime">0.00s</strong></span>
+          <span>合計威力 <strong id="totalPotency">0</strong></span>
+        </div>
+      </header>
+      <div class="timeline-body">
+        <div class="timeline-row-labels">
+          <div class="timeline-row-labels-spacer"></div>
+          <div class="timeline-row-label">GCD</div>
+          <div class="timeline-row-label">アビ</div>
+          <div class="timeline-row-label timeline-row-label-effect">効果時間</div>
+        </div>
+        <div class="timeline-scroll">
+          <div class="timeline-chart">
+            <div id="timelineTicks" class="timeline-ticks"></div>
+            <div class="timeline-axis"></div>
+            <div class="timeline-row timeline-row-gcd">
+              <div id="gcdTimeline" class="timeline-track"></div>
+            </div>
+            <div class="timeline-row timeline-row-ability">
+              <div id="abilityTimeline" class="timeline-track"></div>
+            </div>
+            <div class="timeline-row timeline-row-effect">
+              <div id="effectTimeline" class="timeline-track timeline-effect-empty"></div>
+            </div>
+            <div id="timeIndicator" class="time-indicator"><span></span></div>
+            <div id="combatStartMarker" class="combat-start-marker" hidden><span>戦闘開始</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="dashboard-grid">
+      <section class="panel gauge-panel">
+        <header class="panel-header"><h2>ジョブゲージ</h2></header>
+        <div class="panel-body">
+          <div class="gauge-block">
+            <div class="gauge-label"><span>ソウルゲージ</span><strong id="soulGaugeValue">0 / 100</strong></div>
+            <div class="gauge-bar"><span id="soulGaugeFill" style="width: 0%"></span></div>
+          </div>
+          <div class="gauge-block">
+            <div class="gauge-label"><span>シュラウドゲージ</span><strong id="shroudGaugeValue">0 / 100</strong></div>
+            <div class="gauge-bar gauge-bar-dark"><span id="shroudGaugeFill" style="width: 0%"></span></div>
+          </div>
+          <div class="stack-block">
+            <h3>スタック</h3>
+            <span>シュラウドスタック</span>
+            <div id="shroudStacks" class="stack-dots" aria-label="シュラウドスタック 0"><i></i><i></i><i></i><i></i><i></i></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel skills-panel">
+        <header class="panel-header">
+          <h2>スキル操作</h2>
+          <div class="skill-settings">
+            <button id="undoButton" class="button button-small" type="button" disabled>1手戻す</button>
+            <label class="gcd-setting">GCD設定 <input type="number" id="gcdSettingInput" min="1" step="0.01" value="2.50">秒</label>
+          </div>
+        </header>
+        <div class="panel-body">
+          <section class="skill-category">
+            <h3>ウェポンスキル</h3>
+            <div id="weaponskillButtons" class="action-grid"></div>
+          </section>
+          <section class="skill-category">
+            <h3>アビリティ</h3>
+            <div id="abilityButtons" class="action-grid"></div>
+          </section>
+          <section class="skill-category">
+            <h3>ロールアクション／他</h3>
+            <div id="roleActionButtons" class="action-grid"></div>
+          </section>
+          <section class="skill-category">
+            <h3>時間操作</h3>
+            <div class="action-grid wait-grid">
+              <button class="action-tile wait-tile" data-wait="0.5" type="button"><strong>待機0.5</strong><small>入力</small></button>
+              <button class="action-tile wait-tile" data-wait="1" type="button"><strong>待機1.0</strong><small>入力</small></button>
+              <button class="action-tile wait-tile" data-wait="2.5" type="button"><strong>待機2.5</strong><small>入力</small></button>
+            </div>
+          </section>
+          <p id="actionMessage" class="action-message" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <aside class="panel status-panel">
+        <header class="panel-header"><h2>状態</h2></header>
+        <div class="panel-body">
+          <h3>バフ</h3>
+          <div id="buffList" class="status-grid"></div>
+          <h3 class="status-subheading">デバフ / DoT</h3>
+          <div id="debuffList" class="status-grid"></div>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <div id="skillTooltip" class="skill-tooltip" hidden></div>
+  <div id="dragGhost" class="drag-ghost" hidden>
+    <span class="drag-ghost-icon">
+      <img alt="" onerror="this.style.display='none'" onload="this.style.display=''">
+      <span class="drag-ghost-fallback"></span>
+    </span>
+  </div>
+
+  <script src="js/skills.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/ui.js"></script>
+</body>
+</html>

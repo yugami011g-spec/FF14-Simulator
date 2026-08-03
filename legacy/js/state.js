@@ -1,0 +1,36 @@
+// シミュレーター全体で共有する現在状態です。
+// 時刻を基準に、威力・コンボ・再使用可能時刻を管理します。
+const state = {
+  // カウント(戦闘開始前カウントダウン)の長さ(秒)。0なら無効。ユーザー設定値なのでリセット対象外。
+  leadInDuration: 0,
+  // 戦闘時間(戦闘開始=0秒からの上限秒数)。0なら無制限。ユーザー設定値なのでリセット対象外。
+  combatDuration: 0,
+  // プレイヤーのGCD設定値(秒)。通常GCD(2.5s基準)のスキルにのみ適用します。ユーザー設定値なのでリセット対象外。
+  gcdSetting: 2.5,
+  elapsedTime: 0,
+  totalPotency: 0,
+  comboStep: 0,
+  comboExpiresAt: 0,
+  soulGauge: 0,
+  shroudGauge: 0,
+  soulReaverStacks: 0,
+  soulReaverExpiresAt: 0,
+  executionerStacks: 0,
+  executionerExpiresAt: 0,
+  lemureStacks: 0,
+  voidStacks: 0,
+  enshroudedUntil: 0,
+  sacrificiumReady: false,
+  reapingCombo: null,
+  immortalSacrificeStacks: 0,
+  gcdReadyAt: 0,
+  actionReadyAt: 0,
+  cooldowns: {},
+  chargeReadyTimes: {},
+  buffs: {},
+  debuffs: {},
+  effectHistory: [],
+  displayTime: null,
+  message: "",
+  history: []
+};
