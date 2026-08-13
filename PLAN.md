@@ -401,11 +401,31 @@ Vitest: 27件全てグリーン。`tsc --noEmit`、`npm run build`ともにク�
 (pointermoveだけ発火してdown/upが欠落するケースを複数回観測)。以後この種の検証をする際は、
 `javascript_tool`で`el.dispatchEvent(new PointerEvent(...))`を直接使う方が確実。
 
+### M8: localStorageへの自動永続化 — 完了(2026-08-14)
+
+legacy版の「保存/読込ボタン」は採用せず、要件ヒアリングの結果「サイトを離れても再訪時に入力状態が
+残っていること」のみが必須と判明したため、entries/settingsの変更を都度自動でlocalStorageへ書き込み、
+マウント時に自動復元する方式にスコープを変更した。
+
+- `src/hooks/persistence.ts`を新規作成。`loadPersistedState(job)`/`savePersistedState(jobId, entries, settings)`。
+  保存キーは`ff14-simulator:${job.id}`。現在のジョブに存在しないskillIdを含むエントリや壊れたJSONは
+  黙って除外し、例外を投げない(legacy版の読込バリデーションと同じ方針)。
+- `useSimulator.ts`の`entries`/`settings`の初期値を`loadPersistedState`から取得するよう変更し、
+  `useEffect`で変更の都度`savePersistedState`を呼ぶよう配線。手動save/loadボタン・`dispatch.save`/
+  `dispatch.load`は追加していない(不要と判断)。
+- `useSimulator.test.ts`に`beforeEach(() => localStorage.clear())`を追加(自動永続化により前のテストの
+  状態が次のテストへ漏れるのを防ぐため)。M8用のテスト5件を追加(再訪時の復元、未保存時は空、存在しない
+  スキルを含むエントリの除外、壊れたJSONの無視、reset()後は空で復元されること)。
+- `tsc --noEmit`・`npm run build`・Vitest 32件(既存27+新規5)、すべてクリーン。
+- 詳細な意思決定の経緯は`.company/secretary/notes/2026-08-14-decisions.md`参照。
+
 ### 未着手のマイルストーン
 
-- **M8**: localStorage保存/読込(`dispatch.save`/`dispatch.load`はまだ`useSimulator.ts`に存在しない、
-  新規実装が必要)。
-- **M9**: CSS最終調整、本セクションを含むPLAN.md全体の新アーキテクチャ反映への書き直し、実戦的な
+- **M9**: CSV(またはExcel)形式でのスキル回しの書き出し/読込。CSV vs 本物の.xlsx形式の要否は着手時に
+  ユーザーへ確認する(CSVなら追加ライブラリ不要、.xlsxなら`xlsx`等の追加が必要)。
+- **M10**: スキル回しの画像出力。対象範囲(タイムライン全体のビジュアル vs スキル一覧の整形画像)は
+  着手時にユーザーへ確認する。
+- **M11**(旧M9): CSS最終調整、本セクションを含むPLAN.md全体の新アーキテクチャ反映への書き直し、実戦的な
   リーパー回しでlegacy版と新版の最初から最後までの一致確認。
 
 ### 開発サーバー起動方法(再開時)

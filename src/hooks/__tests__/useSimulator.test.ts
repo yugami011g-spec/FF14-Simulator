@@ -1,10 +1,15 @@
 // @vitest-environment jsdom
 import { act, renderHook } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { reaperJobDefinition } from "../../data/reaper/jobDefinition";
 import { useSimulator } from "../useSimulator";
 
 const job = reaperJobDefinition;
+
+// M8: 各テストが前のテストの自動永続化(localStorage)の影響を受けないようにする。
+beforeEach(() => {
+  localStorage.clear();
+});
 
 describe("useSimulator (integration: hook wiring, not just the pure engine)", () => {
   it("clicking through a combo chain updates totalPotency/history via React state", () => {
@@ -110,5 +115,58 @@ describe("useSimulator (integration: hook wiring, not just the pure engine)", ()
     expect(result.current.isPreviewing).toBe(false);
     expect(result.current.history).toHaveLength(3);
     expect(result.current.history[2]).toMatchObject({ skillId: "infernalSlice", comboSuccess: true });
+  });
+
+  describe("M8: auto-persistence to localStorage", () => {
+    it("restores entries and settings from a previous session on mount", () => {
+      const first = renderHook(() => useSimulator(job));
+      act(() => first.result.current.dispatch.useSkill("slice"));
+      act(() => first.result.current.dispatch.useSkill("waxingSlice"));
+      act(() => first.result.current.dispatch.updateGcdSetting(2.0));
+
+      // 別セッション(再訪)を模してフックを新規マウントする。
+      const second = renderHook(() => useSimulator(job));
+      expect(second.result.current.history).toHaveLength(2);
+      expect(second.result.current.history[0]).toMatchObject({ skillId: "slice" });
+      expect(second.result.current.settings.gcdSetting).toBe(2.0);
+    });
+
+    it("starts empty when nothing was persisted", () => {
+      const { result } = renderHook(() => useSimulator(job));
+      expect(result.current.history).toHaveLength(0);
+    });
+
+    it("drops persisted entries referencing skills that no longer exist on the job, without throwing", () => {
+      localStorage.setItem(
+        `ff14-simulator:${job.id}`,
+        JSON.stringify({
+          version: 1,
+          entries: [
+            { id: "a", kind: "skill", skillId: "notARealSkill", usedAt: 0, preserveTiming: true },
+            { id: "b", kind: "skill", skillId: "slice", usedAt: 0, preserveTiming: true },
+          ],
+          settings: { leadInDuration: 0, combatDuration: 0, gcdSetting: 2.5 },
+        }),
+      );
+
+      const { result } = renderHook(() => useSimulator(job));
+      expect(result.current.history).toHaveLength(1);
+      expect(result.current.history[0]).toMatchObject({ skillId: "slice" });
+    });
+
+    it("ignores corrupted persisted data and starts empty instead of throwing", () => {
+      localStorage.setItem(`ff14-simulator:${job.id}`, "{not valid json");
+      const { result } = renderHook(() => useSimulator(job));
+      expect(result.current.history).toHaveLength(0);
+    });
+
+    it("reset() clears the persisted state too, so a fresh mount stays empty", () => {
+      const first = renderHook(() => useSimulator(job));
+      act(() => first.result.current.dispatch.useSkill("slice"));
+      act(() => first.result.current.dispatch.reset());
+
+      const second = renderHook(() => useSimulator(job));
+      expect(second.result.current.history).toHaveLength(0);
+    });
   });
 });

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { JobDefinition } from "../types/job";
 import type { ReplayEntry } from "../types/history";
 import type { SimSettings } from "../types/state";
@@ -12,14 +12,20 @@ import {
   buildEntriesAfterMove,
   buildEntriesAfterUndo,
 } from "../engine/editOps";
+import { loadPersistedState, savePersistedState } from "./persistence";
 
 const DEFAULT_SETTINGS: SimSettings = { leadInDuration: 0, combatDuration: 0, gcdSetting: 2.5 };
 
 export function useSimulator(job: JobDefinition<any>) {
-  const [entries, setEntries] = useState<ReplayEntry[]>([]);
-  const [settings, setSettings] = useState<SimSettings>(DEFAULT_SETTINGS);
+  const [entries, setEntries] = useState<ReplayEntry[]>(() => loadPersistedState(job)?.entries ?? []);
+  const [settings, setSettings] = useState<SimSettings>(() => loadPersistedState(job)?.settings ?? DEFAULT_SETTINGS);
   const [displayTime, setDisplayTime] = useState<number | null>(null);
   const [message, setMessage] = useState("");
+
+  // 入力状態の変更を都度ブラウザへ自動保存する(離脱→再訪時に復元するため)。
+  useEffect(() => {
+    savePersistedState(job.id, entries, settings);
+  }, [job.id, entries, settings]);
 
   const result = useMemo(() => replay(entries, settings, job), [entries, settings, job]);
   const initial = useMemo(() => initialSnapshot(settings, job), [settings, job]);
