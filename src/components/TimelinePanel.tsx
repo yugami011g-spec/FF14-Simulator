@@ -311,11 +311,26 @@ function WaitTile({
   onDelete?: (id: string) => void;
 }) {
   const [hovered, setHovered] = useState(false);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const leftPercent = ((entry.usedAt - contentStart) / contentDuration) * 100;
   const widthPercent = (entry.duration / contentDuration) * 100;
 
+  // mouseleave直後に即座に隠すと、クリック動作(mousedown→mouseup)中のわずかなマウスのぶれで
+  // グループホバーが外れた瞬間に削除×が操作不能になり、クリックが不成立になることがあった。
+  // 非表示化に短い猶予を持たせ、その間にホバーが戻れば(=クリック中の一時的なぶれなら)取り消す。
+  function scheduleHide() {
+    hideTimerRef.current = setTimeout(() => setHovered(false), 200);
+  }
+  function cancelHideAndShow() {
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+    setHovered(true);
+  }
+
   return (
-    <div style={{ display: "contents" }} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
+    <div style={{ display: "contents" }} onMouseEnter={cancelHideAndShow} onMouseLeave={scheduleHide}>
       <button
         type="button"
         className="timeline-action is-wait"
@@ -324,21 +339,29 @@ function WaitTile({
       >
         待機 {entry.duration.toFixed(1)}s
       </button>
-      {hovered && (
-        <span
-          className="timeline-action-delete timeline-wait-delete"
-          role="button"
-          aria-label="削除"
-          style={{ left: `calc(${leftPercent + widthPercent}% - 14px)` }}
-          onPointerDown={(event) => event.stopPropagation()}
-          onClick={(event) => {
-            event.stopPropagation();
-            onDelete?.(entry.id);
-          }}
-        >
-          ×
-        </span>
-      )}
+      {/* ホバー中だけDOMへ出し入れすると、クリック中(mousedown→mouseup)にほんの僅かでも
+          マウスがぶれてグループホバーが外れた瞬間、この要素ごとアンマウントされてしまい、
+          mouseupの着地先が消えてclickが不成立になることがあった(実マウスでは自動化した
+          座標指定クリックと違って手ぶれが必ず入るため再現しやすい)。常にDOM上に存在させ、
+          表示/当たり判定だけをopacity・pointer-eventsで切り替えることで、クリック中に
+          要素そのものが消えないようにする。 */}
+      <span
+        className="timeline-action-delete timeline-wait-delete"
+        role="button"
+        aria-label="削除"
+        style={{
+          left: `calc(${leftPercent + widthPercent}% - 14px)`,
+          opacity: hovered ? 1 : 0,
+          pointerEvents: hovered ? "auto" : "none",
+        }}
+        onPointerDown={(event) => event.stopPropagation()}
+        onClick={(event) => {
+          event.stopPropagation();
+          onDelete?.(entry.id);
+        }}
+      >
+        ×
+      </span>
     </div>
   );
 }

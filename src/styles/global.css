@@ -144,15 +144,16 @@ h3 { margin-bottom: 14px; font-size: 12px; font-weight: 500; }
    下部は常に空くため、ホバー判定(WaitTileのグループhover)はそこで確実に成立します。 */
 .timeline-action.is-wait { top: 0; z-index: 0; height: 125px; align-items: start; border: 1px dashed var(--border-strong); border-radius: 0; background: repeating-linear-gradient(45deg, #f1f3f4, #f1f3f4 6px, #e8eaed 6px, #e8eaed 12px); color: var(--muted); font-size: 9px; font-weight: 500; white-space: nowrap; overflow: hidden; padding-top: 8px; }
 /* 削除×は待機本体の子要素にせず独立した兄弟要素にし、アクションより手前のz-indexに置く
-   (子のz-indexは親のスタッキング階層を超えられないため)。表示/非表示はReact state
-   (WaitTileのhover)で制御するホバー限定表示。 */
-/* アクションと重ならずホバーが確実に成立する下部(アビリティ行側)に置く。上部(GCD行側)は
+   (子のz-indexは親のスタッキング階層を超えられないため)。
+   アクションと重ならずホバーが確実に成立する下部(アビリティ行側)に置く。上部(GCD行側)は
    隣接アクションに覆われがちで、ホバー発火エリアからここまでマウスを動かす間に一瞬アクション上を
-   通過してグループホバーが外れ、着いた時には削除×が消えている、という事象が起きたため。
-   このspanの位置決めの基準(containing block)は.timeline-track(GCD行の高さ=62px)であって
-   待機本体の見た目上の高さ(125px、2行分)ではないため、bottomではなく待機の実高さから逆算した
-   topで待機自身の下寄りへ配置する。 */
-.timeline-wait-delete { position: absolute; top: 105px; right: auto; z-index: 2; display: flex; }
+   通過してグループホバーが外れる事象が起きたため。位置決めの基準(containing block)は
+   .timeline-track(GCD行の高さ=62px)であって待機本体の見た目上の高さ(125px、2行分)ではないため、
+   bottomではなく待機の実高さから逆算したtopで待機自身の下寄りへ配置する。
+   表示のON/OFFはopacity/pointer-eventsで行い、display自体は常時flexのまま(要素をDOMへ
+   出し入れすると、クリック中の僅かなマウスのぶれでグループホバーが外れた瞬間に要素ごと
+   消えてクリックが不成立になることがあったため、常にDOM上へ存在させる)。 */
+.timeline-wait-delete { position: absolute; top: 105px; right: auto; z-index: 2; display: flex; transition: opacity .1s ease; }
 .timeline-drop-indicator { position: absolute; top: 0; z-index: 4; width: 2px; height: 100%; background: var(--blue); pointer-events: none; }
 .drag-ghost { position: fixed; z-index: 40; pointer-events: none; transform: translate(-50%, -50%) scale(1.1) rotate(-2deg); }
 .drag-ghost[hidden] { display: none; }
