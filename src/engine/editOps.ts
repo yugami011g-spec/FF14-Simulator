@@ -1,7 +1,7 @@
 import type { HistoryEntry } from "../types/history";
 import type { ReplayEntry } from "../types/history";
 
-function generateEntryId(): string {
+export function generateEntryId(): string {
   return typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `entry-${Math.random().toString(36).slice(2)}`;
 }
 

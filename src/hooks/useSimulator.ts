@@ -87,6 +87,13 @@ export function useSimulator(job: JobDefinition<any>) {
     setMessage("");
   }
 
+  // CSV読込など、外部から組み立てたentries一式で現在のタイムラインを置き換える。
+  function loadEntries(newEntries: ReplayEntry[], skippedRows = 0) {
+    setEntries(newEntries);
+    setDisplayTime(null);
+    setMessage(skippedRows > 0 ? `CSV読込: ${skippedRows}件の行を読み込めず除外しました` : "");
+  }
+
   function updateLeadInDuration(value: number) {
     // カウントの起点そのものが変わるため、既存の回しはリセットする(旧実装と同じ)。
     setSettings((prev) => ({ ...prev, leadInDuration: value }));
@@ -122,6 +129,7 @@ export function useSimulator(job: JobDefinition<any>) {
       moveEntry,
       insertSkillAt,
       reset,
+      loadEntries,
       updateLeadInDuration,
       updateCombatDuration,
       updateGcdSetting,

@@ -1,8 +1,10 @@
 import { useRef } from "react";
+import type { ChangeEvent } from "react";
 import { reaperJobDefinition } from "./data/reaper/jobDefinition";
 import { useSimulator } from "./hooks/useSimulator";
 import { useTooltipController } from "./hooks/useTooltipController";
 import { useDragGhost } from "./hooks/useDragGhost";
+import { historyToCsv, csvToEntries } from "./hooks/csv";
 import { Header } from "./components/Header";
 import { TimelinePanel } from "./components/TimelinePanel";
 import { GaugePanel } from "./components/GaugePanel";
@@ -21,10 +23,42 @@ function App() {
   const gcdTrackRef = useRef<HTMLDivElement>(null);
   const abilityTrackRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const csvFileInputRef = useRef<HTMLInputElement>(null);
+
+  function handleExportCsv() {
+    const csv = historyToCsv(sim.history);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `ff14-skill-rotation-${job.id}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleImportClick() {
+    csvFileInputRef.current?.click();
+  }
+
+  async function handleImportFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    const text = await file.text();
+    const { entries, skippedRows } = csvToEntries(text, job);
+    sim.dispatch.loadEntries(entries, skippedRows);
+  }
 
   return (
     <main className="app">
-      <Header onReset={sim.dispatch.reset} />
+      <Header onSave={handleExportCsv} onLoad={handleImportClick} onReset={sim.dispatch.reset} />
+      <input
+        ref={csvFileInputRef}
+        type="file"
+        accept=".csv,text/csv"
+        style={{ display: "none" }}
+        onChange={handleImportFile}
+      />
       <TimelinePanel
         settings={sim.settings}
         history={sim.history}

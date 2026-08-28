@@ -419,10 +419,31 @@ legacy版の「保存/読込ボタン」は採用せず、要件ヒアリング�
 - `tsc --noEmit`・`npm run build`・Vitest 32件(既存27+新規5)、すべてクリーン。
 - 詳細な意思決定の経緯は`.company/secretary/notes/2026-08-14-decisions.md`参照。
 
+### M9: CSV書き出し/読込 — 完了(2026-08-27)
+
+要件ヒアリングの結果、.xlsx対応は不要でCSVのみで進める方針に確定。
+
+- `src/hooks/csv.ts`を新規作成。`historyToCsv(history)`/`csvToEntries(csvText, job)`。
+  追加ライブラリなしの自前CSVパーサ/ライタ(カンマ・引用符・改行を含むフィールドのクォート処理込み)。
+- CSV列は`order,kind,skillId,skillName,duration,usedAt,potency`。再読込に使うのは`kind`/`skillId`/
+  `duration`のみで、`usedAt`/`potency`は確認用の付加情報(再読込時は無視)。再構築したエントリは常に
+  `usedAt:0, preserveTiming:false`とし、行の並び順どおり自然な再生タイミング(通常のスキルボタン押下と
+  同じ規約)でreplay()し直す。
+- 現在のジョブに存在しないskillId、不正な`duration`の行は黙って除外し、除外件数を`skippedRows`として
+  返す(persistence.tsのlocalStorage読込と同じ「黙って除外」方針)。
+- `src/engine/editOps.ts`の`generateEntryId`をexportして再利用。
+- `useSimulator.ts`に`loadEntries(newEntries, skippedRows)`を追加。CSV読込時、除外件数>0なら
+  「CSV読込: N件の行を読み込めず除外しました」を`message`に表示。
+- `Header.tsx`の既存の未配線ボタン(旧「保存」「読込」、M8で自動永続化に切り替えた際に放置されていた)を
+  「CSV書き出し」「CSV読込」に転用。`App.tsx`で書き出しはBlob+`<a download>`、読込は隠し
+  `<input type=file>`を使う実装(ライブラリ追加なし)。
+- テスト: `src/hooks/__tests__/csv.test.ts`(往復変換、不正skillId/duration行の除外、ヘッダー不正、
+  空入力の5件)を新規追加。`tsc --noEmit`・`npm run build`・Vitest 37件(既存32+新規5)、すべてクリーン。
+- ブラウザでの実動作確認済み(Chrome拡張経由。CSV書き出しのBlob内容をJSで検証、CSV読込を
+  `DataTransfer`経由のファイル選択で再現し、無効行の除外メッセージ表示まで確認)。
+
 ### 未着手のマイルストーン
 
-- **M9**: CSV(またはExcel)形式でのスキル回しの書き出し/読込。CSV vs 本物の.xlsx形式の要否は着手時に
-  ユーザーへ確認する(CSVなら追加ライブラリ不要、.xlsxなら`xlsx`等の追加が必要)。
 - **M10**: スキル回しの画像出力。対象範囲(タイムライン全体のビジュアル vs スキル一覧の整形画像)は
   着手時にユーザーへ確認する。
 - **M11**(旧M9): CSS最終調整、本セクションを含むPLAN.md全体の新アーキテクチャ反映への書き直し、実戦的な

@@ -10,10 +10,10 @@ export function Header({ onSave, onLoad, onReset }: HeaderProps) {
       <h1>リーパー時間軸シミュレーター</h1>
       <div className="header-actions">
         <button className="button button-small" type="button" onClick={onSave}>
-          保存
+          CSV書き出し
         </button>
         <button className="button button-small" type="button" onClick={onLoad}>
-          読込
+          CSV読込
         </button>
         <button className="button button-danger" type="button" onClick={onReset}>
           リセット
