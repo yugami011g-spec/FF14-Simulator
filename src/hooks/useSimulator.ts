@@ -9,7 +9,6 @@ import {
   appendWaitEntry,
   buildEntriesAfterDelete,
   buildEntriesAfterInsertSkill,
-  buildEntriesAfterMove,
   buildEntriesAfterUndo,
 } from "../engine/editOps";
 import { loadPersistedState, savePersistedState } from "./persistence";
@@ -70,11 +69,6 @@ export function useSimulator(job: JobDefinition<any>) {
     setEntries(buildEntriesAfterDelete(result.history, id));
   }
 
-  function moveEntry(id: string, targetTime: number) {
-    setMessage("");
-    setEntries(buildEntriesAfterMove(result.history, id, targetTime));
-  }
-
   function insertSkillAt(skillId: string, targetTime: number) {
     if (!job.skills[skillId]) return;
     setMessage("");
@@ -126,7 +120,6 @@ export function useSimulator(job: JobDefinition<any>) {
       wait,
       undo,
       deleteAt,
-      moveEntry,
       insertSkillAt,
       reset,
       loadEntries,

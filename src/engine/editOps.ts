@@ -31,10 +31,13 @@ export function buildEntriesAfterDelete(history: HistoryEntry[], id: string): Re
     .filter((_, entryIndex) => entryIndex !== index);
 }
 
-type Insertion = { id: string } & ({ kind: "skill"; skillId: string } | { kind: "wait"; duration: number });
+interface Insertion {
+  id: string;
+  skillId: string;
+}
 
-// others(時系列配列)へ insertion を targetTime の位置に挿入した ReplayEntry[] を組み立てます。
-// cutoffTime より前の元の使用時刻はそのまま保持し、それ以降(新規/移動分を含む)は詰め直します。
+// others(時系列配列)へ insertion(新規スキル)を targetTime の位置に挿入した ReplayEntry[] を組み立てます。
+// cutoffTime より前の元の使用時刻はそのまま保持し、それ以降(新規分を含む)は詰め直します。
 function splicePreservingOrder(
   others: HistoryEntry[],
   insertion: Insertion,
@@ -43,10 +46,13 @@ function splicePreservingOrder(
 ): ReplayEntry[] {
   const insertBeforeIndex = others.findIndex((entry) => entry.usedAt > targetTime);
   const withPreserve = others.map((entry) => toReplayEntry(entry, entry.usedAt < cutoffTime));
-  const insertionEntry: ReplayEntry =
-    insertion.kind === "wait"
-      ? { id: insertion.id, kind: "wait", duration: insertion.duration, usedAt: targetTime, preserveTiming: false }
-      : { id: insertion.id, kind: "skill", skillId: insertion.skillId, usedAt: targetTime, preserveTiming: false };
+  const insertionEntry: ReplayEntry = {
+    id: insertion.id,
+    kind: "skill",
+    skillId: insertion.skillId,
+    usedAt: targetTime,
+    preserveTiming: false,
+  };
   if (insertBeforeIndex === -1) {
     withPreserve.push(insertionEntry);
   } else {
@@ -55,22 +61,9 @@ function splicePreservingOrder(
   return withPreserve;
 }
 
-// タイムライン上の既存アクション(idで特定)を targetTime の位置へ移動します。
-export function buildEntriesAfterMove(history: HistoryEntry[], id: string, targetTime: number): ReplayEntry[] {
-  const moved = history.find((entry) => entry.id === id);
-  if (!moved) {
-    return history.map((entry) => toReplayEntry(entry, true));
-  }
-  const others = history.filter((entry) => entry.id !== id);
-  const cutoffTime = Math.min(moved.usedAt, targetTime);
-  const insertion: Insertion =
-    moved.kind === "wait" ? { id: moved.id, kind: "wait", duration: moved.duration } : { id: moved.id, kind: "skill", skillId: moved.skillId };
-  return splicePreservingOrder(others, insertion, targetTime, cutoffTime);
-}
-
 // 新規スキルを targetTime の位置へ挿入します(末尾追加ではなく、途中への挿入)。
 export function buildEntriesAfterInsertSkill(history: HistoryEntry[], skillId: string, targetTime: number): ReplayEntry[] {
-  return splicePreservingOrder(history, { id: generateEntryId(), kind: "skill", skillId }, targetTime, targetTime);
+  return splicePreservingOrder(history, { id: generateEntryId(), skillId }, targetTime, targetTime);
 }
 
 // 末尾へスキルを追加します(通常のボタン押下と同じ、常にライブの現在時刻から自然に進む挿入)。

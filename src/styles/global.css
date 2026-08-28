@@ -122,22 +122,23 @@ h3 { margin-bottom: 14px; font-size: 12px; font-weight: 500; }
 /* 区切り線は行(.timeline-row)ではなくトラック(目盛りと同じ calc(100% - 48px) 幅)に付けることで、
    末尾の余白(TIMELINE_RIGHT_MARGIN)へ線がはみ出して見えないようにします。 */
 .timeline-row-gcd .timeline-track, .timeline-row-ability .timeline-track { border-bottom: 1px solid #e8eaed; }
-/* アイコン自体に縁取りがあるため、通常時の枠線は透明にします(ドラッグ中/ホバー時の
+/* アイコン自体に縁取りがあるため、通常時の枠線は透明にします(ホバー時の
    色付き枠は残せるよう、0pxではなくtransparentにしています)。 */
-.timeline-action { position: absolute; top: 8px; display: grid; width: 44px; height: 44px; padding: 4px; place-items: center; border: 1px solid transparent; border-radius: 8px; color: var(--text); background: #fff; font-size: 9px; line-height: 11px; text-align: center; cursor: grab; touch-action: none; transform: translateX(-1px); transition: transform .12s ease, box-shadow .12s ease; }
+.timeline-action { position: absolute; top: 8px; z-index: 1; display: grid; width: 44px; height: 44px; padding: 4px; place-items: center; border: 1px solid transparent; border-radius: 8px; color: var(--text); background: #fff; font-size: 9px; line-height: 11px; text-align: center; transition: transform .12s ease, box-shadow .12s ease; }
 .timeline-action:hover { border-color: var(--blue); }
 .timeline-action.has-clipping { box-shadow: inset 0 -3px var(--danger); }
-/* 削除はタイル本体のクリックではなく、ホバー時だけ現れるこの×ボタンから行います
-   (つまんで移動しようとした際の誤操作での削除を防ぐため)。 */
+/* 削除はタイル本体のクリックではなく、ホバー時だけ現れるこの×ボタンから行います。 */
 .timeline-action-delete { position: absolute; top: -7px; right: -7px; z-index: 6; display: none; align-items: center; justify-content: center; width: 16px; height: 16px; border: 1px solid #fff; border-radius: 50%; background: var(--danger); color: #fff; font-size: 11px; line-height: 1; cursor: pointer; }
 .timeline-action:hover .timeline-action-delete { display: flex; }
-.timeline-action.is-dragging .timeline-action-delete { display: none; }
-.timeline-action.is-dragging { z-index: 5; cursor: grabbing; border-color: var(--blue); color: var(--text); transform: translateX(-1px) scale(1.15); box-shadow: 0 14px 22px rgba(0,0,0,.32); }
 .timeline-row-ability .timeline-action { width: 34px; height: 34px; border-radius: 6px; background: #f0f0ec; font-size: 8px; }
 /* GCD行(62px)+行間ボーダー(1px)+アビリティ行(62px)にまたがるよう、高さを2行分ぶん確保します。
-   待機はGCD/アビリティ両方の入力を止めるため、GCD行だけにかかっているように見えないようにする調整です。 */
-.timeline-action.is-wait { top: 8px; height: 109px; align-items: start; border: 1px dashed var(--border-strong); border-radius: 14px; background: repeating-linear-gradient(45deg, #f1f3f4, #f1f3f4 6px, #e8eaed 6px, #e8eaed 12px); color: var(--muted); font-size: 9px; font-weight: 500; white-space: nowrap; overflow: hidden; padding-top: 8px; }
-.timeline-action.is-wait.is-dragging { transform: none; border-color: var(--blue); box-shadow: 0 10px 16px rgba(0,0,0,.28); }
+   待機はGCD/アビリティ両方の入力を止めるため、GCD行だけにかかっているように見えないようにする調整です。
+   z-indexをアクションタイルより低くし、隣接するアクションアイコンの上に重ならないようにしています。 */
+.timeline-action.is-wait { top: 8px; z-index: 0; height: 109px; align-items: start; border: 1px dashed var(--border-strong); border-radius: 14px; background: repeating-linear-gradient(45deg, #f1f3f4, #f1f3f4 6px, #e8eaed 6px, #e8eaed 12px); color: var(--muted); font-size: 9px; font-weight: 500; white-space: nowrap; overflow: hidden; padding-top: 8px; }
+/* 待機は直前アクションと同じ時刻から始まることが多く、アクション(44px固定幅・z-index:1)の
+   下に完全に隠れてホバーそのものが届かないことがある。削除×は待機本体の子要素にせず独立した
+   兄弟要素にし、アクションより手前のz-indexで常時表示することで確実に押せるようにする。 */
+.timeline-wait-delete { position: absolute; top: 8px; right: auto; z-index: 2; display: flex; }
 .timeline-drop-indicator { position: absolute; top: 0; z-index: 4; width: 2px; height: 100%; background: var(--blue); pointer-events: none; }
 .drag-ghost { position: fixed; z-index: 40; pointer-events: none; transform: translate(-50%, -50%) scale(1.1) rotate(-2deg); }
 .drag-ghost[hidden] { display: none; }

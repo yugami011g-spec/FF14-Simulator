@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import type { SimSettings } from "../types/state";
 import type { HistoryEntry } from "../types/history";
 import type { Skill } from "../types/skill";
@@ -13,7 +14,6 @@ import {
 } from "../engine/timelineMath";
 import { useTimelineScrub } from "../hooks/useTimelineScrub";
 import { useTimelinePan } from "../hooks/useTimelinePan";
-import { useTimelineTileDrag } from "../hooks/useTimelineTileDrag";
 
 interface TimelinePanelProps {
   settings: SimSettings;
@@ -31,7 +31,6 @@ interface TimelinePanelProps {
   onLeadInChange?: (value: number) => void;
   onCombatDurationChange?: (seconds: number) => void;
   onSetDisplayTime?: (time: number | null) => void;
-  onMoveEntry?: (id: string, targetTime: number) => void;
   onDeleteEntry?: (id: string) => void;
 }
 
@@ -54,11 +53,22 @@ export function TimelinePanel({
   onLeadInChange,
   onCombatDurationChange,
   onSetDisplayTime,
-  onMoveEntry,
   onDeleteEntry,
 }: TimelinePanelProps) {
   const scrub = useTimelineScrub(chartRef, settings, history, (time) => onSetDisplayTime?.(time));
   useTimelinePan(scrollRef);
+
+  // ライブ入力(スキル/待機の追加)でタイムラインが伸びたときだけ、最新位置が見える位置まで
+  // 自動で右へスクロール追従する。プレビュー中(過去確認スクラブ中)は追従しない。
+  const prevHistoryLengthRef = useRef(history.length);
+  useEffect(() => {
+    const grew = history.length > prevHistoryLengthRef.current;
+    prevHistoryLengthRef.current = history.length;
+    const scrollEl = scrollRef.current;
+    if (grew && !isPreviewing && scrollEl) {
+      scrollEl.scrollLeft = scrollEl.scrollWidth - scrollEl.clientWidth;
+    }
+  }, [history.length, isPreviewing, scrollRef]);
 
   const contentStart = getTimelineContentStart(settings);
   const contentEnd = getTimelineContentEnd(settings, history);
@@ -154,9 +164,6 @@ export function TimelinePanel({
                     skills={skills}
                     contentStart={contentStart}
                     contentDuration={contentDuration}
-                    settings={settings}
-                    history={history}
-                    onMove={onMoveEntry}
                     onDelete={onDeleteEntry}
                   />
                 ))}
@@ -171,9 +178,6 @@ export function TimelinePanel({
                     skills={skills}
                     contentStart={contentStart}
                     contentDuration={contentDuration}
-                    settings={settings}
-                    history={history}
-                    onMove={onMoveEntry}
                     onDelete={onDeleteEntry}
                   />
                 ))}
@@ -196,7 +200,6 @@ export function TimelinePanel({
                       title={`${effect.name}内：${effect.actionCount || 0}アクション / 威力${effect.potency || 0}`}
                     >
                       {effect.name}
-                      {effect.potency ? ` ${effect.potency}` : ""}
                     </span>
                   );
                 })}
@@ -232,27 +235,14 @@ function TimelineTile({
   skills,
   contentStart,
   contentDuration,
-  settings,
-  history,
-  onMove,
   onDelete,
 }: {
   entry: HistoryEntry;
   skills: Record<string, Skill<any>>;
   contentStart: number;
   contentDuration: number;
-  settings: SimSettings;
-  history: HistoryEntry[];
-  onMove?: (id: string, targetTime: number) => void;
   onDelete?: (id: string) => void;
 }) {
-  const drag = useTimelineTileDrag({
-    entry,
-    settings,
-    history,
-    onMove: (id, targetTime) => onMove?.(id, targetTime),
-  });
-
   const deleteButton = (
     <span
       className="timeline-action-delete"
@@ -269,23 +259,35 @@ function TimelineTile({
   );
 
   if (entry.kind === "wait") {
+    // 待機は直前アクションと同じ時刻から始まることが多く、アクションアイコン(44px固定幅)の
+    // 下に完全に隠れることがある。ホバーでしか出ない削除×だと辿り着けないため、待機の削除だけは
+    // 兄弟要素として独立させ、アクションより手前(z-index)に常時表示する。
+    const leftPercent = ((entry.usedAt - contentStart) / contentDuration) * 100;
+    const widthPercent = (entry.duration / contentDuration) * 100;
     return (
-      <button
-        type="button"
-        className="timeline-action is-wait"
-        style={{
-          left: `${((entry.usedAt - contentStart) / contentDuration) * 100}%`,
-          width: `${(entry.duration / contentDuration) * 100}%`,
-        }}
-        title={`${entry.usedAt.toFixed(2)}s → ${entry.endAt.toFixed(2)}s（待機${entry.duration.toFixed(1)}秒） / ドラッグで移動・ホバーの×で削除`}
-        onPointerDown={drag.onPointerDown}
-        onPointerMove={drag.onPointerMove}
-        onPointerUp={drag.onPointerUp}
-        onPointerCancel={drag.onPointerCancel}
-      >
-        待機 {entry.duration.toFixed(1)}s
-        {deleteButton}
-      </button>
+      <>
+        <button
+          type="button"
+          className="timeline-action is-wait"
+          style={{ left: `${leftPercent}%`, width: `${widthPercent}%` }}
+          title={`${entry.usedAt.toFixed(2)}s → ${entry.endAt.toFixed(2)}s（待機${entry.duration.toFixed(1)}秒）`}
+        >
+          待機 {entry.duration.toFixed(1)}s
+        </button>
+        <span
+          className="timeline-action-delete timeline-wait-delete"
+          role="button"
+          aria-label="削除"
+          style={{ left: `calc(${leftPercent + widthPercent}% - 14px)` }}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation();
+            onDelete?.(entry.id);
+          }}
+        >
+          ×
+        </span>
+      </>
     );
   }
   const shortName = skills[entry.skillId]?.shortName || entry.skillName;
@@ -298,11 +300,7 @@ function TimelineTile({
       type="button"
       className={`timeline-action${entry.clipping > 0 ? " has-clipping" : ""}`}
       style={{ left: `${((entry.castStartAt - contentStart) / contentDuration) * 100}%` }}
-      title={`${castLabel} / 威力 ${entry.potency}${entry.clipping ? ` / 食い込み ${entry.clipping.toFixed(2)}s` : ""} / ドラッグで移動・ホバーの×で削除`}
-      onPointerDown={drag.onPointerDown}
-      onPointerMove={drag.onPointerMove}
-      onPointerUp={drag.onPointerUp}
-      onPointerCancel={drag.onPointerCancel}
+      title={`${castLabel} / 威力 ${entry.potency}${entry.clipping ? ` / 食い込み ${entry.clipping.toFixed(2)}s` : ""} / ホバーの×で削除`}
     >
       <img className="skill-icon" src={`${import.meta.env.BASE_URL}assets/icons/${entry.skillId}.png`} alt="" onError={(e) => (e.currentTarget.style.display = "none")} />
       <span className="skill-name-fallback">{shortName}</span>

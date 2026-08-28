@@ -81,7 +81,6 @@ function App() {
         onLeadInChange={sim.dispatch.updateLeadInDuration}
         onCombatDurationChange={sim.dispatch.updateCombatDuration}
         onSetDisplayTime={sim.dispatch.setDisplayTime}
-        onMoveEntry={sim.dispatch.moveEntry}
         onDeleteEntry={sim.dispatch.deleteAt}
       />
       <div className="dashboard-grid">
