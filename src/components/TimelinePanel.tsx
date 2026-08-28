@@ -341,10 +341,13 @@ function WaitTile({
       </button>
       {/* ホバー中だけDOMへ出し入れすると、クリック中(mousedown→mouseup)にほんの僅かでも
           マウスがぶれてグループホバーが外れた瞬間、この要素ごとアンマウントされてしまい、
-          mouseupの着地先が消えてclickが不成立になることがあった(実マウスでは自動化した
-          座標指定クリックと違って手ぶれが必ず入るため再現しやすい)。常にDOM上に存在させ、
-          表示/当たり判定だけをopacity・pointer-eventsで切り替えることで、クリック中に
-          要素そのものが消えないようにする。 */}
+          mouseupの着地先が消えてclickが不成立になることがあった。常にDOM上に存在させる
+          だけでなく、当たり判定(pointer-events)もホバー状態に関係なく常時有効にする
+          ―― opacityの切り替えにトランジションやReactの再レンダータイミングが絡むと、
+          「見た目はまだ薄い/濃い」状態と「実際にクリックできる状態」が一瞬ずれることが
+          あり得るため、当たり判定そのものはホバーに一切依存させず、見た目(opacity)だけを
+          ホバーで切り替える。待機の右下という限られた領域のみが対象のため、非表示時に
+          誤ってクリックしてしまうリスクは小さいと判断。 */}
       <span
         className="timeline-action-delete timeline-wait-delete"
         role="button"
@@ -352,7 +355,6 @@ function WaitTile({
         style={{
           left: `calc(${leftPercent + widthPercent}% - 14px)`,
           opacity: hovered ? 1 : 0,
-          pointerEvents: hovered ? "auto" : "none",
         }}
         onPointerDown={(event) => event.stopPropagation()}
         onClick={(event) => {

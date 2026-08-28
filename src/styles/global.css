@@ -153,7 +153,12 @@ h3 { margin-bottom: 14px; font-size: 12px; font-weight: 500; }
    表示のON/OFFはopacity/pointer-eventsで行い、display自体は常時flexのまま(要素をDOMへ
    出し入れすると、クリック中の僅かなマウスのぶれでグループホバーが外れた瞬間に要素ごと
    消えてクリックが不成立になることがあったため、常にDOM上へ存在させる)。 */
-.timeline-wait-delete { position: absolute; top: 105px; right: auto; z-index: 2; display: flex; transition: opacity .1s ease; }
+/* z-indexは.time-indicator(表示位置の青い縦線、同じz-index:2でDOM順が後のため通常は
+   タイムインジケーターが勝つ)より確実に前面へ。待機を追加した直後は表示位置(displayTime)が
+   ちょうど待機の終了時刻(=この削除×を置いている待機の右端)と一致するため、削除×とタイム
+   インジケーターが同じ座標へ重なり、クリックがことごとくタイムインジケーター側のスクラブ
+   操作に奪われていた。 */
+.timeline-wait-delete { position: absolute; top: 105px; right: auto; z-index: 7; display: flex; transition: opacity .1s ease; }
 .timeline-drop-indicator { position: absolute; top: 0; z-index: 4; width: 2px; height: 100%; background: var(--blue); pointer-events: none; }
 .drag-ghost { position: fixed; z-index: 40; pointer-events: none; transform: translate(-50%, -50%) scale(1.1) rotate(-2deg); }
 .drag-ghost[hidden] { display: none; }
