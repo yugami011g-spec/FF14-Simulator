@@ -10,8 +10,15 @@ export function useTimelinePan(scrollRef: React.RefObject<HTMLElement | null>) {
     const scrollEl = scrollRef.current;
     if (!scrollEl) return;
 
+    // .timeline-action-delete(待機の削除×)は、待機本体(.timeline-action)の子要素ではなく
+    // 独立した兄弟要素として描画されている(z-indexの入れ子制約を回避するため)。そのため
+    // .closest(".timeline-action")では検知できず、ここに含めないと「操作対象ではない」と
+    // 誤判定されてパンが開始してしまう。このパンはReactを介さないネイティブaddEventListener
+    // で実装されており、Reactのstopイベント処理より先に発火してsetPointerCaptureしてしまう
+    // ため、以降のpointerup/clickがすべてこちら側へ奪われ、削除×が完全に無反応になっていた。
     const isInteractiveTarget = (target: EventTarget | null) =>
-      target instanceof Element && Boolean(target.closest(".timeline-action, .timeline-ticks, .time-indicator"));
+      target instanceof Element &&
+      Boolean(target.closest(".timeline-action, .timeline-action-delete, .timeline-ticks, .time-indicator"));
 
     let pointerId: number | null = null;
     let startX = 0;

@@ -634,6 +634,47 @@ legacy版の「保存/読込ボタン」は採用せず、要件ヒアリング�
 - ブラウザでの実動作確認済み(Chrome拡張経由)。今回は実際にCDP経由の`hover`→`left_click`
   (座標のスクリーンショット/実解像度換算を都度確認した上で)で削除が成立することを確認した。
 
+### 待機の削除×、真の真因(2) — useTimelinePanのポインターキャプチャ横取り — 完了(2026-08-28)
+
+前回のz-index修正後も「シークレットウィンドウでも反応しない」との報告(拡張機能の干渉ではないことが
+確定)。ユーザーの実ブラウザでDevTools Consoleに`addEventListener('click', ...)`を仕込んでもらった
+ところ、**clickイベント自体がこの要素に一切届いていない**ことが判明。これで真因を特定できた。
+
+**真因**: タイムラインの空白部分をドラッグでパンする`useTimelinePan.ts`が、「操作対象の要素か
+どうか」を`target.closest(".timeline-action, .timeline-ticks, .time-indicator")`という
+セレクタだけで判定していた。待機の削除×(`.timeline-wait-delete`)は、z-indexの入れ子制約を
+回避するため待機本体(`.timeline-action`)の**子要素ではなく独立した兄弟要素**として実装して
+いた（[[2026-08-28-timeline-wait-delete-unreachable]]参照）ため、この`.closest()`では
+一切ヒットしない。
+
+さらに重要なのは、このパン機能が**Reactを介さない生の`addEventListener`**で
+`.timeline-scroll`へ直接配線されている点。ネイティブのDOMイベント伝播は、Reactの合成
+イベントシステム(ルート要素に1つだけ配線される)より**先に**、途中の祖先要素へ配線された
+ネイティブリスナーを通過する。そのため、削除×自身の`onPointerDown={(e) =>
+e.stopPropagation()}`(Reactの合成イベント)が実行されるより前に、`useTimelinePan`の
+ネイティブpointerdownリスナーが先に発火し、`isInteractiveTarget`が`false`と誤判定した
+結果`scrollEl.setPointerCapture()`が呼ばれてしまう。一度ポインターキャプチャが設定されると、
+以降のpointerup/clickはすべて捕捉先(`.timeline-scroll`)へ強制的にリダイレクトされ、
+削除×自身には二度と届かなくなる。stopPropagation()では手遅れ、というのがポイント。
+
+**解決策**: `isInteractiveTarget`のセレクタに`.timeline-action-delete`を追加。
+```
+target.closest(".timeline-action, .timeline-action-delete, .timeline-ticks, .time-indicator")
+```
+通常アクションの削除×は`.timeline-action`の子要素なので元々`.closest()`でヒットしており
+問題なかった(=通常アクションの削除だけが動いていた理由)。待機の削除×だけがこの一覧から
+漏れていた。
+
+- `tsc --noEmit`・`npm run build`・Vitest 37件、すべてクリーン。
+- ブラウザでの実動作確認済み(Chrome拡張経由)。ボタンが視覚的に表示された状態で、
+  スクリーンショット上で実際に見える座標を都度確認しながらクリックし、削除が成立することを
+  複数回確認した。
+
+副次的に、ユーザーのDevTools Consoleログから`assets/icons/tincture.png`の404も見つかった。
+`tincture`(薬)スキルのデータは存在するが対応するアイコン画像ファイルが最初から存在しない
+既存の抜け漏れ。`onError`によるテキストフォールバックで機能的には問題ないため、実際の
+アイコン素材がない現状では対応を見送る。
+
 ### 未着手のマイルストーン
 
 - **M11**(旧M9): CSS最終調整、本セクションを含むPLAN.md全体の新アーキテクチャ反映への書き直し、実戦的な
