@@ -1,6 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { SimSettings } from "../types/state";
-import type { HistoryEntry } from "../types/history";
+import type { HistoryEntry, WaitEntry } from "../types/history";
 import type { Skill } from "../types/skill";
 import {
   TIMELINE_BASE_WIDTH,
@@ -58,22 +58,26 @@ export function TimelinePanel({
   const scrub = useTimelineScrub(chartRef, settings, history, (time) => onSetDisplayTime?.(time));
   useTimelinePan(scrollRef);
 
-  // ライブ入力(スキル/待機の追加)でタイムラインが伸びたときだけ、最新位置が見える位置まで
-  // 自動で右へスクロール追従する。プレビュー中(過去確認スクラブ中)は追従しない。
+  const contentStart = getTimelineContentStart(settings);
+  const contentEnd = getTimelineContentEnd(settings, history);
+  const contentDuration = getTimelineContentDuration(settings, history);
+  const trackWidth = TIMELINE_BASE_WIDTH * (contentDuration / TIMELINE_DURATION);
+  const latestPositionPx = (Math.max(0, Math.min((displayTime - contentStart) / contentDuration, 1))) * trackWidth;
+
+  // ライブ入力(スキル/待機の追加)でタイムラインが伸びたときだけ、最新位置(表示位置インジケーター)が
+  // 見える位置まで自動で右へスクロール追従する。ベースの表示尺(35秒分)自体は常に確保されているため、
+  // scrollWidth基準で末尾へ飛ばすと、実際にはまだ短い回しでもベース末尾(35秒地点)まで飛んでしまう
+  // ―― そのため実際の最新位置の座標を基準にする。プレビュー中(過去確認スクラブ中)は追従しない。
   const prevHistoryLengthRef = useRef(history.length);
   useEffect(() => {
     const grew = history.length > prevHistoryLengthRef.current;
     prevHistoryLengthRef.current = history.length;
     const scrollEl = scrollRef.current;
     if (grew && !isPreviewing && scrollEl) {
-      scrollEl.scrollLeft = scrollEl.scrollWidth - scrollEl.clientWidth;
+      const margin = 40;
+      scrollEl.scrollLeft = Math.max(0, latestPositionPx - scrollEl.clientWidth + margin);
     }
-  }, [history.length, isPreviewing, scrollRef]);
-
-  const contentStart = getTimelineContentStart(settings);
-  const contentEnd = getTimelineContentEnd(settings, history);
-  const contentDuration = getTimelineContentDuration(settings, history);
-  const trackWidth = TIMELINE_BASE_WIDTH * (contentDuration / TIMELINE_DURATION);
+  }, [history.length, isPreviewing, scrollRef, latestPositionPx]);
 
   const firstTick = Math.ceil(contentStart / 5) * 5;
   const ticks: number[] = [];
@@ -87,8 +91,6 @@ export function TimelinePanel({
   const timelineEffects = effectHistory.filter((effect) => effect.showOnTimeline && effect.appliedAt < contentEnd);
   const { lanes, laneCount } = assignEffectLanes(timelineEffects);
   const effectRowHeight = Math.max(EFFECT_ROW_MIN_HEIGHT, laneCount * EFFECT_LANE_HEIGHT + 16);
-
-  const indicatorRatio = Math.max(0, Math.min((displayTime - contentStart) / contentDuration, 1));
 
   return (
     <section className="panel timeline-panel">
@@ -199,7 +201,7 @@ export function TimelinePanel({
                       }}
                       title={`${effect.name}内：${effect.actionCount || 0}アクション / 威力${effect.potency || 0}`}
                     >
-                      {effect.name}
+                      <span className="timeline-effect-label">{effect.name}</span>
                     </span>
                   );
                 })}
@@ -207,7 +209,7 @@ export function TimelinePanel({
             </div>
             <div
               className={`time-indicator${isPreviewing ? " is-previewing" : ""}`}
-              style={{ left: `${indicatorRatio * trackWidth}px` }}
+              style={{ left: `${latestPositionPx}px` }}
               onPointerDown={scrub.onPointerDown}
               onPointerMove={scrub.onPointerMove}
               onPointerUp={scrub.onPointerUp}
@@ -259,35 +261,13 @@ function TimelineTile({
   );
 
   if (entry.kind === "wait") {
-    // 待機は直前アクションと同じ時刻から始まることが多く、アクションアイコン(44px固定幅)の
-    // 下に完全に隠れることがある。ホバーでしか出ない削除×だと辿り着けないため、待機の削除だけは
-    // 兄弟要素として独立させ、アクションより手前(z-index)に常時表示する。
-    const leftPercent = ((entry.usedAt - contentStart) / contentDuration) * 100;
-    const widthPercent = (entry.duration / contentDuration) * 100;
     return (
-      <>
-        <button
-          type="button"
-          className="timeline-action is-wait"
-          style={{ left: `${leftPercent}%`, width: `${widthPercent}%` }}
-          title={`${entry.usedAt.toFixed(2)}s → ${entry.endAt.toFixed(2)}s（待機${entry.duration.toFixed(1)}秒）`}
-        >
-          待機 {entry.duration.toFixed(1)}s
-        </button>
-        <span
-          className="timeline-action-delete timeline-wait-delete"
-          role="button"
-          aria-label="削除"
-          style={{ left: `calc(${leftPercent + widthPercent}% - 14px)` }}
-          onPointerDown={(event) => event.stopPropagation()}
-          onClick={(event) => {
-            event.stopPropagation();
-            onDelete?.(entry.id);
-          }}
-        >
-          ×
-        </span>
-      </>
+      <WaitTile
+        entry={entry}
+        contentStart={contentStart}
+        contentDuration={contentDuration}
+        onDelete={onDelete}
+      />
     );
   }
   const shortName = skills[entry.skillId]?.shortName || entry.skillName;
@@ -306,5 +286,56 @@ function TimelineTile({
       <span className="skill-name-fallback">{shortName}</span>
       {deleteButton}
     </button>
+  );
+}
+
+// 待機は直前アクションと同じ時刻から始まることが多く、アクションアイコン(44px固定幅)の下に
+// 完全に隠れることがある。削除×はホバー時だけ出す挙動を維持したいが、CSSの:hoverだと
+// アクション(z-index:1)に覆われている間は待機自体へマウスの当たり判定が届かずホバーが
+// 発火しないため、React stateでホバー管理する。削除×はaction本体の子要素ではなく独立した
+// 兄弟要素にし、アクションより手前(z-index)に置く(子のz-indexは親のスタッキング階層を
+// 超えられないため)。ボタンと削除×をdisplay:contentsの共通親でまとめ、削除×自体にマウスが
+// 乗ってもグループとしてはホバー継続扱いにし、出た瞬間に消えるちらつきを防ぐ。
+function WaitTile({
+  entry,
+  contentStart,
+  contentDuration,
+  onDelete,
+}: {
+  entry: WaitEntry;
+  contentStart: number;
+  contentDuration: number;
+  onDelete?: (id: string) => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const leftPercent = ((entry.usedAt - contentStart) / contentDuration) * 100;
+  const widthPercent = (entry.duration / contentDuration) * 100;
+
+  return (
+    <div style={{ display: "contents" }} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
+      <button
+        type="button"
+        className="timeline-action is-wait"
+        style={{ left: `${leftPercent}%`, width: `${widthPercent}%` }}
+        title={`${entry.usedAt.toFixed(2)}s → ${entry.endAt.toFixed(2)}s（待機${entry.duration.toFixed(1)}秒） / ホバーの×で削除`}
+      >
+        待機 {entry.duration.toFixed(1)}s
+      </button>
+      {hovered && (
+        <span
+          className="timeline-action-delete timeline-wait-delete"
+          role="button"
+          aria-label="削除"
+          style={{ left: `calc(${leftPercent + widthPercent}% - 14px)` }}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation();
+            onDelete?.(entry.id);
+          }}
+        >
+          ×
+        </span>
+      )}
+    </div>
   );
 }
