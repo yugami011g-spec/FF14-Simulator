@@ -68,14 +68,17 @@ export function TimelinePanel({
   // 見える位置まで自動で右へスクロール追従する。ベースの表示尺(35秒分)自体は常に確保されているため、
   // scrollWidth基準で末尾へ飛ばすと、実際にはまだ短い回しでもベース末尾(35秒地点)まで飛んでしまう
   // ―― そのため実際の最新位置の座標を基準にする。プレビュー中(過去確認スクラブ中)は追従しない。
+  // latestPositionPxはアイコンの「左端」(usedAt/castStartAt)の座標で、アイコン自体はそこから
+  // 右へ最大44px(GCDアイコン幅)描画されるため、右端が見切れないよう分だけ余白を足す。
   const prevHistoryLengthRef = useRef(history.length);
   useEffect(() => {
     const grew = history.length > prevHistoryLengthRef.current;
     prevHistoryLengthRef.current = history.length;
     const scrollEl = scrollRef.current;
     if (grew && !isPreviewing && scrollEl) {
-      const margin = 40;
-      scrollEl.scrollLeft = Math.max(0, latestPositionPx - scrollEl.clientWidth + margin);
+      const iconWidth = 44;
+      const breathingRoom = 30;
+      scrollEl.scrollLeft = Math.max(0, latestPositionPx + iconWidth + breathingRoom - scrollEl.clientWidth);
     }
   }, [history.length, isPreviewing, scrollRef, latestPositionPx]);
 

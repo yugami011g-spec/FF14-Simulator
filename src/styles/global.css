@@ -118,17 +118,23 @@ h3 { margin-bottom: 14px; font-size: 12px; font-weight: 500; }
 .timeline-axis { width: calc(100% - 48px); height: 2px; background: var(--border-strong); }
 .timeline-row { height: 62px; }
 .timeline-row-effect { height: 76px; }
-.timeline-track { position: relative; width: calc(100% - 48px); height: 100%; }
+/* pointer-events:noneにする理由: 各行のtrack自体は空の透明な箱だが、position:relativeかつ
+   z-index:autoで「positioned, z-index:auto」レイヤーに参加するため、DOM順で後にあるアビリティ行の
+   trackが、GCD行内に描画されている待機(z-index:0)より前面でヒットテストを奪ってしまう
+   (待機のうちアクションと重ならない下部=アビリティ行の高さにかかる部分が、隣のアビリティ行track
+   自身に食われてホバーが一切発火しない、という形で発現した)。trackそのものはクリック対象を
+   持たないため丸ごとpointer-events:noneにし、実際に操作対象となるタイル側だけautoで復元する。 */
+.timeline-track { position: relative; width: calc(100% - 48px); height: 100%; pointer-events: none; }
 /* 区切り線は行(.timeline-row)ではなくトラック(目盛りと同じ calc(100% - 48px) 幅)に付けることで、
    末尾の余白(TIMELINE_RIGHT_MARGIN)へ線がはみ出して見えないようにします。 */
 .timeline-row-gcd .timeline-track, .timeline-row-ability .timeline-track { border-bottom: 1px solid #e8eaed; }
 /* アイコン自体に縁取りがあるため、通常時の枠線は透明にします(ホバー時の
    色付き枠は残せるよう、0pxではなくtransparentにしています)。 */
-.timeline-action { position: absolute; top: 8px; z-index: 1; display: grid; width: 44px; height: 44px; padding: 4px; place-items: center; border: 1px solid transparent; border-radius: 8px; color: var(--text); background: #fff; font-size: 9px; line-height: 11px; text-align: center; transition: transform .12s ease, box-shadow .12s ease; }
+.timeline-action { position: absolute; top: 8px; z-index: 1; display: grid; width: 44px; height: 44px; padding: 4px; place-items: center; border: 1px solid transparent; border-radius: 8px; color: var(--text); background: #fff; font-size: 9px; line-height: 11px; text-align: center; pointer-events: auto; transition: transform .12s ease, box-shadow .12s ease; }
 .timeline-action:hover { border-color: var(--blue); }
 .timeline-action.has-clipping { box-shadow: inset 0 -3px var(--danger); }
 /* 削除はタイル本体のクリックではなく、ホバー時だけ現れるこの×ボタンから行います。 */
-.timeline-action-delete { position: absolute; top: -7px; right: -7px; z-index: 6; display: none; align-items: center; justify-content: center; width: 16px; height: 16px; border: 1px solid #fff; border-radius: 50%; background: var(--danger); color: #fff; font-size: 11px; line-height: 1; cursor: pointer; }
+.timeline-action-delete { position: absolute; top: -7px; right: -7px; z-index: 6; display: none; align-items: center; justify-content: center; width: 16px; height: 16px; border: 1px solid #fff; border-radius: 50%; background: var(--danger); color: #fff; font-size: 11px; line-height: 1; pointer-events: auto; cursor: pointer; }
 .timeline-action:hover .timeline-action-delete { display: flex; }
 .timeline-row-ability .timeline-action { width: 34px; height: 34px; border-radius: 6px; background: #f0f0ec; font-size: 8px; }
 /* GCD行(62px)+行間ボーダー(1px)+アビリティ行(62px)ちょうどにまたがるよう、高さを2行分ぶん確保します
@@ -136,11 +142,17 @@ h3 { margin-bottom: 14px; font-size: 12px; font-weight: 500; }
    だけにかかっているように見えないようにする調整でもあります。z-indexをアクションタイルより低くし、
    隣接するアクションアイコンの上に重ならないようにしています。アクションと重ならないアビリティ行側の
    下部は常に空くため、ホバー判定(WaitTileのグループhover)はそこで確実に成立します。 */
-.timeline-action.is-wait { top: 8px; z-index: 0; height: 117px; align-items: start; border: 1px dashed var(--border-strong); border-radius: 0; background: repeating-linear-gradient(45deg, #f1f3f4, #f1f3f4 6px, #e8eaed 6px, #e8eaed 12px); color: var(--muted); font-size: 9px; font-weight: 500; white-space: nowrap; overflow: hidden; padding-top: 8px; }
+.timeline-action.is-wait { top: 0; z-index: 0; height: 125px; align-items: start; border: 1px dashed var(--border-strong); border-radius: 0; background: repeating-linear-gradient(45deg, #f1f3f4, #f1f3f4 6px, #e8eaed 6px, #e8eaed 12px); color: var(--muted); font-size: 9px; font-weight: 500; white-space: nowrap; overflow: hidden; padding-top: 8px; }
 /* 削除×は待機本体の子要素にせず独立した兄弟要素にし、アクションより手前のz-indexに置く
    (子のz-indexは親のスタッキング階層を超えられないため)。表示/非表示はReact state
    (WaitTileのhover)で制御するホバー限定表示。 */
-.timeline-wait-delete { position: absolute; top: 8px; right: auto; z-index: 2; display: flex; }
+/* アクションと重ならずホバーが確実に成立する下部(アビリティ行側)に置く。上部(GCD行側)は
+   隣接アクションに覆われがちで、ホバー発火エリアからここまでマウスを動かす間に一瞬アクション上を
+   通過してグループホバーが外れ、着いた時には削除×が消えている、という事象が起きたため。
+   このspanの位置決めの基準(containing block)は.timeline-track(GCD行の高さ=62px)であって
+   待機本体の見た目上の高さ(125px、2行分)ではないため、bottomではなく待機の実高さから逆算した
+   topで待機自身の下寄りへ配置する。 */
+.timeline-wait-delete { position: absolute; top: 105px; right: auto; z-index: 2; display: flex; }
 .timeline-drop-indicator { position: absolute; top: 0; z-index: 4; width: 2px; height: 100%; background: var(--blue); pointer-events: none; }
 .drag-ghost { position: fixed; z-index: 40; pointer-events: none; transform: translate(-50%, -50%) scale(1.1) rotate(-2deg); }
 .drag-ghost[hidden] { display: none; }
@@ -154,7 +166,7 @@ h3 { margin-bottom: 14px; font-size: 12px; font-weight: 500; }
    .timeline-scroll(実際に横スクロールする祖先)ではなくこの要素自身を基準にしてしまい、
    全く追従しなくなる。帯の範囲を超えて名前が飛び出さない制約は、sticky自体が自分の
    containing block(この要素)の外には出られない性質でまかなう。 */
-.timeline-effect { position: absolute; height: 18px; padding: 2px 7px; border: 1px solid var(--border-strong); border-radius: 4px; font-size: 9px; line-height: 12px; white-space: nowrap; }
+.timeline-effect { position: absolute; height: 18px; padding: 2px 7px; border: 1px solid var(--border-strong); border-radius: 4px; font-size: 9px; line-height: 12px; white-space: nowrap; pointer-events: auto; }
 /* 帯の開始位置(名前ラベル)が横スクロールで画面外へ流れても、帯自体が表示されている間は
    名前が追従して見えるようにする(sticky)。 */
 .timeline-effect-label { position: sticky; left: 4px; }
