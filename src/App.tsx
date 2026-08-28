@@ -5,6 +5,7 @@ import { useSimulator } from "./hooks/useSimulator";
 import { useTooltipController } from "./hooks/useTooltipController";
 import { useDragGhost } from "./hooks/useDragGhost";
 import { historyToCsv, csvToEntries } from "./hooks/csv";
+import { exportTimelineImage } from "./hooks/exportImage";
 import { Header } from "./components/Header";
 import { TimelinePanel } from "./components/TimelinePanel";
 import { GaugePanel } from "./components/GaugePanel";
@@ -49,9 +50,14 @@ function App() {
     sim.dispatch.loadEntries(entries, skippedRows);
   }
 
+  async function handleExportImage() {
+    if (!chartRef.current) return;
+    await exportTimelineImage(chartRef.current, `ff14-timeline-${job.id}`);
+  }
+
   return (
     <main className="app">
-      <Header onSave={handleExportCsv} onLoad={handleImportClick} onReset={sim.dispatch.reset} />
+      <Header onSave={handleExportCsv} onLoad={handleImportClick} onExportImage={handleExportImage} onReset={sim.dispatch.reset} />
       <input
         ref={csvFileInputRef}
         type="file"

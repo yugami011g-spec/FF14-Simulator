@@ -113,7 +113,7 @@ export function SkillButton({
       onBlur={onHideTooltip}
     >
       <strong>
-        {!iconFailed && <img className="skill-icon" alt="" src={`/assets/icons/${skill.id}.png`} onError={() => setIconFailed(true)} />}
+        {!iconFailed && <img className="skill-icon" alt="" src={`${import.meta.env.BASE_URL}assets/icons/${skill.id}.png`} onError={() => setIconFailed(true)} />}
         {iconFailed && <span className="skill-name-fallback">{skill.shortName || skill.name}</span>}
         <em className="recast-time">{badgeRemaining > 0 ? `${badgeRemaining.toFixed(1)}s` : ""}</em>
         <i className="charge-badge">{charges === null ? "" : charges}</i>

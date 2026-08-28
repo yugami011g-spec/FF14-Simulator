@@ -11,7 +11,7 @@ export function DragGhost({ ghost }: { ghost: DragGhostState | null }) {
   return (
     <div className="drag-ghost" style={{ left: `${ghost.x}px`, top: `${ghost.y}px` }}>
       <span className="drag-ghost-icon">
-        {!iconFailed && <img alt="" src={`/assets/icons/${ghost.skillId}.png`} onError={() => setIconFailed(true)} />}
+        {!iconFailed && <img alt="" src={`${import.meta.env.BASE_URL}assets/icons/${ghost.skillId}.png`} onError={() => setIconFailed(true)} />}
         {iconFailed && <span className="drag-ghost-fallback">{ghost.label}</span>}
       </span>
     </div>

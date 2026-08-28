@@ -304,7 +304,7 @@ function TimelineTile({
       onPointerUp={drag.onPointerUp}
       onPointerCancel={drag.onPointerCancel}
     >
-      <img className="skill-icon" src={`/assets/icons/${entry.skillId}.png`} alt="" onError={(e) => (e.currentTarget.style.display = "none")} />
+      <img className="skill-icon" src={`${import.meta.env.BASE_URL}assets/icons/${entry.skillId}.png`} alt="" onError={(e) => (e.currentTarget.style.display = "none")} />
       <span className="skill-name-fallback">{shortName}</span>
       {deleteButton}
     </button>
