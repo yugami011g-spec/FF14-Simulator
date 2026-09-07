@@ -14,6 +14,9 @@ import {
 } from "../engine/timelineMath";
 import { useTimelineScrub } from "../hooks/useTimelineScrub";
 import { useTimelinePan } from "../hooks/useTimelinePan";
+import { useTimelineTooltip } from "../hooks/useTimelineTooltip";
+import { TimelineTileTooltip } from "./TimelineTileTooltip";
+import { buildTimelineActionTooltip, buildTimelineWaitTooltip } from "../engine/tooltipText";
 
 interface TimelinePanelProps {
   settings: SimSettings;
@@ -57,6 +60,7 @@ export function TimelinePanel({
 }: TimelinePanelProps) {
   const scrub = useTimelineScrub(chartRef, settings, history, (time) => onSetDisplayTime?.(time));
   useTimelinePan(scrollRef);
+  const tileTooltip = useTimelineTooltip();
 
   const contentStart = getTimelineContentStart(settings);
   const contentEnd = getTimelineContentEnd(settings, history);
@@ -125,10 +129,10 @@ export function TimelinePanel({
         </div>
         <div className="timeline-summary">
           <button className="button button-small" type="button" hidden={!isPreviewing} onClick={onReturnToLatest}>
-            最新へ戻る
+            先頭へ移動
           </button>
           <span>
-            表示位置 <strong>{displayTime.toFixed(2)}s</strong>
+            表示時間 <strong>{displayTime.toFixed(2)}s</strong>
           </span>
           <span>
             合計威力 <strong>{totalPotency.toLocaleString("ja-JP")}</strong>
@@ -154,7 +158,11 @@ export function TimelinePanel({
               onPointerCancel={scrub.onPointerCancel}
             >
               {ticks.map((seconds) => (
-                <span key={seconds} className="timeline-tick" style={{ left: `${((seconds - contentStart) / contentDuration) * 100}%` }}>
+                <span
+                  key={seconds}
+                  className={`timeline-tick${seconds === 0 ? " is-combat-start" : ""}`}
+                  style={{ left: `${((seconds - contentStart) / contentDuration) * 100}%` }}
+                >
                   {seconds}s
                 </span>
               ))}
@@ -170,6 +178,8 @@ export function TimelinePanel({
                     contentStart={contentStart}
                     contentDuration={contentDuration}
                     onDelete={onDeleteEntry}
+                    onShowTooltip={tileTooltip.show}
+                    onHideTooltip={tileTooltip.hide}
                   />
                 ))}
               </div>
@@ -184,6 +194,8 @@ export function TimelinePanel({
                     contentStart={contentStart}
                     contentDuration={contentDuration}
                     onDelete={onDeleteEntry}
+                    onShowTooltip={tileTooltip.show}
+                    onHideTooltip={tileTooltip.hide}
                   />
                 ))}
               </div>
@@ -196,7 +208,7 @@ export function TimelinePanel({
                   return (
                     <span
                       key={`${effect.id}-${index}`}
-                      className={`timeline-effect timeline-effect-${effect.type}`}
+                      className={`timeline-effect timeline-effect-${effect.type} timeline-effect-id-${effect.id}`}
                       style={{
                         left: `${start * 100}%`,
                         width: `${Math.max(0, end - start) * 100}%`,
@@ -220,17 +232,10 @@ export function TimelinePanel({
             >
               <span>{displayTime.toFixed(2)}s</span>
             </div>
-            {settings.leadInDuration > 0 && (
-              <div
-                className="combat-start-marker"
-                style={{ left: `${Math.max(0, Math.min((0 - contentStart) / contentDuration, 1)) * trackWidth}px` }}
-              >
-                <span>戦闘開始</span>
-              </div>
-            )}
           </div>
         </div>
       </div>
+      <TimelineTileTooltip request={tileTooltip.request} />
     </section>
   );
 }
@@ -241,13 +246,20 @@ function TimelineTile({
   contentStart,
   contentDuration,
   onDelete,
+  onShowTooltip,
+  onHideTooltip,
 }: {
   entry: HistoryEntry;
   skills: Record<string, Skill<any>>;
   contentStart: number;
   contentDuration: number;
   onDelete?: (id: string) => void;
+  onShowTooltip?: (anchorEl: HTMLElement, title: string, lines: string[]) => void;
+  onHideTooltip?: () => void;
 }) {
+  // アイコン画像が読み込めた場合はテキスト(アクション名)を出さない。両方を常に描画すると、
+  // 読み込み成功時も画像の上にテキストが重なって表示されてしまっていた。
+  const [iconFailed, setIconFailed] = useState(false);
   const deleteButton = (
     <span
       className="timeline-action-delete"
@@ -256,6 +268,9 @@ function TimelineTile({
       onPointerDown={(event) => event.stopPropagation()}
       onClick={(event) => {
         event.stopPropagation();
+        // 削除するとタイルごとDOMから消えるため、pointerleaveが発火せずツールチップが
+        // 残り続けてしまう。削除操作そのものでも明示的に隠す。
+        onHideTooltip?.();
         onDelete?.(entry.id);
       }}
     >
@@ -270,23 +285,37 @@ function TimelineTile({
         contentStart={contentStart}
         contentDuration={contentDuration}
         onDelete={onDelete}
+        onShowTooltip={onShowTooltip}
+        onHideTooltip={onHideTooltip}
       />
     );
   }
   const shortName = skills[entry.skillId]?.shortName || entry.skillName;
-  const castLabel =
-    entry.castStartAt !== entry.usedAt
-      ? `詠唱開始${entry.castStartAt.toFixed(2)}s → 着弾${entry.usedAt.toFixed(2)}s`
-      : `${entry.usedAt.toFixed(2)}s`;
+  const skillName = skills[entry.skillId]?.name || entry.skillName;
+  const showTooltip = (event: { currentTarget: HTMLElement }) => {
+    const { title, lines } = buildTimelineActionTooltip(entry, skillName);
+    onShowTooltip?.(event.currentTarget, title, lines);
+  };
   return (
     <button
       type="button"
       className={`timeline-action${entry.clipping > 0 ? " has-clipping" : ""}`}
       style={{ left: `${((entry.castStartAt - contentStart) / contentDuration) * 100}%` }}
-      title={`${castLabel} / 威力 ${entry.potency}${entry.clipping ? ` / 食い込み ${entry.clipping.toFixed(2)}s` : ""} / ホバーの×で削除`}
+      onPointerEnter={showTooltip}
+      onPointerLeave={onHideTooltip}
+      onFocus={showTooltip}
+      onBlur={onHideTooltip}
     >
-      <img className="skill-icon" src={`${import.meta.env.BASE_URL}assets/icons/${entry.skillId}.png`} alt="" onError={(e) => (e.currentTarget.style.display = "none")} />
-      <span className="skill-name-fallback">{shortName}</span>
+      {!iconFailed && (
+        <img
+          className="skill-icon"
+          src={`${import.meta.env.BASE_URL}assets/icons/${entry.skillId}.png`}
+          alt=""
+          draggable={false}
+          onError={() => setIconFailed(true)}
+        />
+      )}
+      {iconFailed && <span className="skill-name-fallback">{shortName}</span>}
       {deleteButton}
     </button>
   );
@@ -304,11 +333,15 @@ function WaitTile({
   contentStart,
   contentDuration,
   onDelete,
+  onShowTooltip,
+  onHideTooltip,
 }: {
   entry: WaitEntry;
   contentStart: number;
   contentDuration: number;
   onDelete?: (id: string) => void;
+  onShowTooltip?: (anchorEl: HTMLElement, title: string, lines: string[]) => void;
+  onHideTooltip?: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -335,7 +368,11 @@ function WaitTile({
         type="button"
         className="timeline-action is-wait"
         style={{ left: `${leftPercent}%`, width: `${widthPercent}%` }}
-        title={`${entry.usedAt.toFixed(2)}s → ${entry.endAt.toFixed(2)}s（待機${entry.duration.toFixed(1)}秒） / ホバーの×で削除`}
+        onPointerEnter={(event) => {
+          const { title, lines } = buildTimelineWaitTooltip(entry);
+          onShowTooltip?.(event.currentTarget, title, lines);
+        }}
+        onPointerLeave={onHideTooltip}
       >
         待機 {entry.duration.toFixed(1)}s
       </button>
@@ -359,6 +396,9 @@ function WaitTile({
         onPointerDown={(event) => event.stopPropagation()}
         onClick={(event) => {
           event.stopPropagation();
+          // 削除するとタイルごとDOMから消えるため、pointerleaveが発火せずツールチップが
+          // 残り続けてしまう。削除操作そのものでも明示的に隠す。
+          onHideTooltip?.();
           onDelete?.(entry.id);
         }}
       >

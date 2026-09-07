@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { JobDefinition } from "../types/job";
 import type { ReplayEntry } from "../types/history";
 import type { SimSettings } from "../types/state";
@@ -25,6 +25,20 @@ export function useSimulator(job: JobDefinition<any>) {
   useEffect(() => {
     savePersistedState(job.id, entries, settings);
   }, [job.id, entries, settings]);
+
+  // ジョブ切替(タブ切替でjobプロップだけが差し替わるケース)を検出し、切替先ジョブの
+  // 永続化状態を読み直す。entries/settingsの初期値は初回マウント時にしか評価されない
+  // (useStateの初期化関数)ため、job.idの変化はこのeffectで別途拾う必要がある。
+  const jobIdRef = useRef(job.id);
+  useEffect(() => {
+    if (jobIdRef.current === job.id) return;
+    jobIdRef.current = job.id;
+    const persisted = loadPersistedState(job);
+    setEntries(persisted?.entries ?? []);
+    setSettings(persisted?.settings ?? DEFAULT_SETTINGS);
+    setDisplayTime(null);
+    setMessage("");
+  }, [job]);
 
   const result = useMemo(() => replay(entries, settings, job), [entries, settings, job]);
   const initial = useMemo(() => initialSnapshot(settings, job), [settings, job]);

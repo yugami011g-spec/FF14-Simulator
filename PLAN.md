@@ -26,6 +26,26 @@ FF14のスキル回しを時間軸に沿って試せる静的Webアプリを作�
 - 現行デザインに反映済みの画面状態を、UI実装時の最新仕様として扱う。
 - 以前の仕様メモと現行デザインが食い違う場合は、原則として現行デザインを優先する。
 
+## 現在のアーキテクチャ(2026-08-29時点)
+
+React + TypeScript + Vite移行(下記「React + TypeScript + Vite 移行」節参照、M0〜M11で完了)後の構成。
+旧バニラJS実装は`legacy/`に保存済みで、比較検証・突き合わせ用に削除しない。
+
+- `src/engine/`: 状態遷移の純粋関数群(`time.ts`/`potency.ts`/`cooldowns.ts`/`gating.ts`/`effects.ts`/
+  `editOps.ts`/`replay.ts`)。`entries`(ユーザー操作の唯一の真実)から`replay()`で毎回ゼロから
+  履歴・最終状態を再構築する設計。ジョブ固有ロジックは`src/engine/jobs/reaper/`に分離。
+- `src/hooks/`: `useSimulator.ts`(entries state管理とdispatch)、`useTimelineScrub.ts`、
+  `useTooltipController.ts`、`useTimelinePan.ts`、`useSkillInsertDrag.ts`、`useDragGhost.ts`、
+  `persistence.ts`(localStorage自動永続化)、`csv.ts`(CSV書き出し/読込)、`exportImage.ts`(PNG画像出力)。
+- `src/data/reaper/`: スキル定義・アクションスロット・バフ名・型。多ジョブ対応を見据えて型は汎用化済みだが、
+  実装済みジョブはリーパーのみ。
+- `src/components/`: `Header`/`TimelinePanel`/`GaugePanel`/`SkillPanel`/`SkillButton`/`StatusPanel`/
+  `SkillTooltip`等。
+- `src/styles/global.css`: 旧CSSをほぼそのまま移植し、以降のUI不具合修正はここに追記する形で対応。
+- テストは Vitest + `@testing-library/react`。`src/engine/__tests__/legacy-crosscheck.test.ts`で
+  legacy版(`legacy/js/engine.js`、Node vm経由で`scripts/cross-check-legacy.cjs`により手動でも再現可能)
+  との数値突き合わせを継続的に検証する。
+
 ## 現行デザイン仕様
 
 基準デザイン:
@@ -79,6 +99,8 @@ FF14のスキル回しを時間軸に沿って試せる静的Webアプリを作�
 - 使用不可状態は暗く表示する。
 - コンボ推奨や選択中などの注目状態は、反転や強調で分かるようにする。
 - 薬などの重要な強調にはアクセント色を使う。
+- リーパーの強調条件(どのアクションをどの状態で光らせるか)の詳細な実機観察仕様は
+  `.company/engineering/docs/reaper-action-highlight-spec.md`を参照(2026-08-29実装完了)。
 
 現時点で常時表示しないもの:
 
@@ -334,11 +356,12 @@ Patch 7.5実装（2026-07-31）:
 
 リーパー単体シミュレーターの計画済み必須機能は完了。以降は、他ジョブ追加、被ダメージイベント、自由な置き換え／ドラッグ編集、優先度Fの拡張候補などを要件確定後に進める。
 
-## React + TypeScript + Vite 移行 (2026-08-03開始、進行中)
+## React + TypeScript + Vite 移行 (2026-08-03開始 〜 2026-08-29 M11完了、移行完了)
 
 計画書: `C:\Users\toshiki\.claude\plans\declarative-gliding-falcon.md`(既存Claude Codeセッションのplanファイル。
-移行の背景・決定事項・型設計・エンジン層設計・マイルストーン定義がすべてここにある。次回セッションは
-まずこれを読むこと)。
+移行の背景・決定事項・型設計・エンジン層設計・マイルストーン定義がすべてここにある)。M0〜M11の全マイルストーンが
+完了し、リーパー単体回しの機能パリティ移行は完了した。以降の作業(他ジョブ対応、被ダメージイベント等)は
+下記「優先度F」およびこのファイル末尾の「残タスク」を参照。
 
 **方針(承認済み)**: 既存のバニラJS実装を`legacy/`へ完全退避し、リポジトリルートに新規React+TS+Viteアプリを
 構築。移行スコープはリーパー単体回しの機能パリティのみ(他ジョブ対応は保留)。型設計だけは多ジョブ対応を
@@ -675,10 +698,80 @@ target.closest(".timeline-action, .timeline-action-delete, .timeline-ticks, .tim
 既存の抜け漏れ。`onError`によるテキストフォールバックで機能的には問題ないため、実際の
 アイコン素材がない現状では対応を見送る。
 
-### 未着手のマイルストーン
+### M11(旧M9): legacy突き合わせ・CSS最終調整・PLAN.md書き直し — 完了(2026-08-29)
 
-- **M11**(旧M9): CSS最終調整、本セクションを含むPLAN.md全体の新アーキテクチャ反映への書き直し、実戦的な
-  リーパー回しでlegacy版と新版の最初から最後までの一致確認。
+1. **legacy版との数値一致確認**: 既存の`legacy-crosscheck.test.ts`は12ステップの短いケース(ゲージ枯渇の
+   拒否挙動のみ検証)しかなく、M11で求められている「実戦的な開幕〜数分間のプレイに近い回し」を
+   カバーしていなかった。開幕儀式(アルケインサークル+シャドウ・オブ・デス)→3連コンボ→ソウルスライス
+   2回でソウルゲージ100まで積み→グラトニー+ストークスウェーズを両方消費→エグゼキューショナー系/
+   ソウルリーヴァー系フィニッシャーを計4回使ってシュラウドゲージ50まで貯め→レムールシュラウド突入→
+   ヴォイド/クロスリーピング交互2周+レムールスライス2回→コムニオで離脱、という32手のローテーションを
+   `scripts/cross-check-legacy.cjs`で検証(全32手成功、`totalPotency=16625`)した上で、同じローテーションを
+   `legacy-crosscheck.test.ts`に新規`it`として追加。新エンジン側も32手すべて拒否なしで成功し、
+   `totalPotency`/`soulGauge`/`shroudGauge`/`soulReaver`/`executioner`/`lemure`/`void`の全項目が
+   legacy版と完全一致することを確認した。**数値不一致・バグは発見されなかった**(M0〜M10の移植が
+   すでに正確だったことの追加裏付け)。
+2. **CSS最終調整**: `npm run dev`(新版)と`legacy/index.html`を静的サーバーで同時に起動し、上記32手
+   ローテーションと同等のリッチな状態(GCD/アビ複数行、バフ/デバフパネル、ゲージバー、フィニッシャー
+   選択中のハイライト等)をChrome拡張で目視比較した。ヘッダー、タイムラインカード、3カラムパネル
+   (ジョブゲージ/スキル操作/状態)、ゲージバー、バフ/デバフピル、スキルボタングリッド、リキャスト
+   オーバーレイ表示のいずれも、レイアウト・余白・配色・フォントに新旧間の差異は見つからなかった
+   (2026-08-28までのUI不具合5+4+4+個別3件の修正がすでに大半のズレを解消済みだったため)。唯一の表示差
+   (legacyの効果帯ラベルに`アルケインサークル 5883`のような威力数値が付く一方、新版は名前のみ表示)は、
+   2026-08-28の「UI不具合5件の修正」項目2で意図的に削除済みの仕様(現行デザイン仕様「バフ/デバフの
+   効果量は常時表示しない」に準拠)であり、修正不要と判断した。**CSSの追加修正は行っていない**。
+3. **PLAN.md書き直し**: 本ファイルの冒頭付近に「現在のアーキテクチャ」節を新設し、React移行後の
+   ディレクトリ構成(`src/engine`/`src/hooks`/`src/data`/`src/components`)を明記した。「React + TypeScript
+   + Vite 移行」の見出しを「進行中」から「移行完了」に更新し、本セクション(M11)を「未着手」から
+   完了扱いに変更した。
+
+- `tsc --noEmit`・`npm run build`・Vitest 38件(既存37+新規1)、すべてクリーン。
+- 詳細は`.company/engineering/docs/ff14-skill-simulator.md`の2026-08-29付け進捗ログも参照。
+
+### リーパー: アクション強調表示機能 — 完了(2026-08-29)
+
+ユーザーの実機観察(`.company/engineering/docs/reaper-action-highlight-spec.md`)に基づき、スキル
+ボタンの推奨強調表示(`is-combo`の光るリング)を実機の挙動に合わせて修正した。
+
+- ジョブ非依存の`JobDefinition.isRecommended?`フックを`src/types/job.ts`に新設し、リーパー実装を
+  `src/engine/jobs/reaper/reaperGating.ts`の`isRecommended`関数として追加、`src/data/reaper/jobDefinition.ts`
+  経由で配線した。
+- `src/components/SkillButton.tsx`の旧判定(`Boolean(skill.requirements) && !resourceReason`のみ)は、
+  ①ソウルゲージ50消費系(グラトニー/ストークスウェーズ等、`requirements`を持たず`gaugeCost`のみ)を
+  見落とす、②ジビトゥ/ギャロウズ/エクス系が対応バフの有無に関わらず常に両方光る、③ヴォイド/クロス
+  リーパーがレムール周回のモード確定後も両方光り続ける、④コムニオがレムールスタック1以外でも光る、
+  という4点で実機と乖離していた。`job.isRecommended`呼び出しに置き換えてこれらを解消した。
+- 新規テスト`src/engine/jobs/reaper/__tests__/reaperGating.test.ts`(9件)を追加。
+- `tsc --noEmit`・`npm run build`・Vitest 47件(既存38+新規9)、すべてクリーン。
+- ブラウザでの実動作確認済み: ソウルゲージ50到達時の強調(グラトニーがリキャスト中でも強調される
+  ことを含む)、シュラウドゲージ50到達でエンシュラウドが強調されること、レムール突入直後はヴォイド/
+  クロスリーパー両方強調→片方使用後は対応モード側のみに切り替わること、コムニオはレムールスタックが
+  ちょうど1の時だけ強調されることを、実際にアクションをクリックしながら`is-combo`クラスの付与状況で
+  確認した。
+
+**(2026-08-29 追記・訂正)** ユーザーの再観察と公式ジョブガイド
+(https://jp.finalfantasyxiv.com/jobguide/reaper/ )により、上記②の理解が誤りだったと判明。
+正しくは、ジビトゥ/ギャロウズ/エクス系も「妖異の鎌・処刑人スタックで発動条件を満たした時点で
+両方強調→対応する威力アップバフが付与されて初めて片方に絞り込まれる」という、ヴォイド/クロス
+リーパーと同じパターンだった。`reaperGating.ts`の`isRecommended`の該当分岐を、
+「`enhancedGibbet`/`enhancedGallows`のどちらも未付与なら両方true」を先に判定してから
+対応バフの有無で絞り込む形に修正し、テストも合わせて修正。`tsc --noEmit`・`npm run build`・
+Vitest 47件(修正のみ、件数変わらず)クリーンを再確認。
+
+また、ユーザーから「シャドウ・オブ・デスがデスデザインを新規付与する一撃自体には威力上昇を
+乗せてはいけない」との指摘があり調査したが、`replay.ts`の`stepSkill`は元々`calculatePotency`を
+このスキルの`effects`適用**前**の状態で呼んでおり、追加修正は不要だった(legacy版も同じ呼び出し
+順)。`shadowOfDeath`(300)→`slice`(462=420×1.1)の実測で正しい挙動であることを確認した。
+この呼び出し順はジョブ非依存のコア設計のため、他ジョブでも同様に正しく動作する。
+
+### 残タスク(2026-08-30時点、優先度低)
+
+- `tincture.png`アイコン画像を用意して404を解消(素材待ち、機能的には`onError`フォールバックで問題なし)。
+- 他ジョブ対応、被ダメージイベント、優先度Fの拡張候補(開始前カウント時間等)は未着手。
+
+**2026-08-30: M8(自動永続化)のブラウザ実動作確認 完了** — カウント設定(7)+スキル3手を配置し、
+`localStorage`保存を確認した上で実際にページを再読み込みし、設定値・タイムライン表示・配置した
+アクションすべてが正しく復元されることを確認した。バグは見つからず、設計通り動作している。
 
 ### 開発サーバー起動方法(再開時)
 

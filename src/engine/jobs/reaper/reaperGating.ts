@@ -51,12 +51,10 @@ export function matchesSlotCondition(condition: string, snapshot: SimSnapshot, e
   }
 }
 
-export function isResourceUnavailable(
-  skill: Skill<ReaperJobEffects>,
-  snapshotRaw: SimSnapshot,
-  elapsedTime: number,
-): string {
-  const snapshot = normalizeTimedState(snapshotRaw, elapsedTime);
+// normalizeTimedState済みのsnapshotを前提に判定する内部実装。isResourceUnavailableと
+// isRecommendedの両方から呼ばれるため、normalizeTimedStateの二重実行を避けるために切り出して
+// いる(呼び出し側が既に正規化済みのsnapshotを持っている場合はこちらを直接使う)。
+function isResourceUnavailableNormalized(skill: Skill<ReaperJobEffects>, snapshot: SimSnapshot, elapsedTime: number): string {
   const gauges = snapshot.gauges;
 
   const soulCost = skill.gaugeCost?.soul || 0;
@@ -120,4 +118,59 @@ export function isResourceUnavailable(
   }
 
   return "";
+}
+
+export function isResourceUnavailable(skill: Skill<ReaperJobEffects>, snapshotRaw: SimSnapshot, elapsedTime: number): string {
+  return isResourceUnavailableNormalized(skill, normalizeTimedState(snapshotRaw, elapsedTime), elapsedTime);
+}
+
+// スキルの「実行可否」とは別に、実機の推奨アクション強調表示(光るリング)を再現する判定です。
+// 詳細は .company/engineering/docs/reaper-action-highlight-spec.md の実機観察メモを参照。
+// resourceReasonを渡すと、呼び出し側(SkillButton等)が既に計算済みの実行不可理由を再利用でき、
+// isResourceUnavailableの再実行を省ける(省略時は内部で計算する。既存の呼び出し・テストと
+// 互換)。
+export function isRecommended(
+  skill: Skill<ReaperJobEffects>,
+  snapshotRaw: SimSnapshot,
+  elapsedTime: number,
+  resourceReason?: string,
+): boolean {
+  const snapshot = normalizeTimedState(snapshotRaw, elapsedTime);
+  const unavailable = resourceReason !== undefined ? resourceReason : isResourceUnavailableNormalized(skill, snapshot, elapsedTime);
+  if (unavailable) {
+    return false;
+  }
+
+  // ジビトゥ／ギャロウズ／エクス系: 妖異の鎌・処刑人スタックで発動条件を満たした直後は両方、
+  // 対応する威力アップバフ(ジビトゥ/ギャロウズ効果アップ)が付いたら以降はそちらのみ強調
+  // (ヴォイド/クロスリーパーと同じ「発動条件を満たす→バフで片方に絞られる」パターン)。
+  if (skill.buffEnhancedBy) {
+    const eitherEnhanceBuffActive =
+      isBuffActive(snapshot.buffs.enhancedGibbet, elapsedTime) || isBuffActive(snapshot.buffs.enhancedGallows, elapsedTime);
+    if (!eitherEnhanceBuffActive) {
+      return true;
+    }
+    return isBuffActive(snapshot.buffs[skill.buffEnhancedBy], elapsedTime);
+  }
+
+  // ハルパー: 「ハルパー効果アップ」(詠唱時間短縮バフ)が付いている間は強調。
+  if (skill.castTimeEnhancedBy) {
+    const ids = Array.isArray(skill.castTimeEnhancedBy) ? skill.castTimeEnhancedBy : [skill.castTimeEnhancedBy];
+    return ids.some((id) => isBuffActive(snapshot.buffs[id], elapsedTime));
+  }
+
+  // ヴォイド／クロスリーパー: レムール突入直後(モード未確定)は両方、以降は対応モードのみ強調。
+  if (skill.enhancedBy === "void" || skill.enhancedBy === "cross") {
+    const mode = snapshot.jobState.reapingCombo?.kind === "mode" ? snapshot.jobState.reapingCombo.value : null;
+    return mode === null || mode === skill.enhancedBy;
+  }
+
+  // コムニオ: レムールスタックがちょうど1(このレムール周回の最後)の時だけ強調。
+  if (skill.id === "communio") {
+    return counterValue(snapshot, "lemure") === 1;
+  }
+
+  // それ以外: ゲージコストや実行条件(requirements)を持つアクションは、実行可能になった
+  // 時点で強調する(プレンティフルハーベスト等の発動条件付きアクション全般を含む)。
+  return Boolean(skill.requirements) || Boolean(skill.gaugeCost);
 }

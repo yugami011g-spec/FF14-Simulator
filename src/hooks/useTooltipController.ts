@@ -1,19 +1,22 @@
 import { useCallback, useState } from "react";
-import type { SkillTooltipData } from "../engine/tooltipText";
 
-export interface TooltipRequest {
-  anchorRect: DOMRect;
-  data: SkillTooltipData;
+// 「今どのアクション枠(base skill id)をホバーしているか」だけを保持します。ホバー中に
+// アクション枠の中身が入れ替わっても(例: コムニオ使用後にペルフェクティオへ枠替え)、
+// 描画側が毎レンダー最新状態からツールチップ内容を組み立て直せるようにするため、
+// 計算済みのツールチップ本文そのものはここでは保持しません。
+export interface TooltipHover {
+  anchorEl: HTMLElement;
+  baseSkillId: string;
 }
 
 export function useTooltipController() {
-  const [request, setRequest] = useState<TooltipRequest | null>(null);
+  const [hover, setHover] = useState<TooltipHover | null>(null);
 
-  const show = useCallback((anchorEl: HTMLElement, data: SkillTooltipData) => {
-    setRequest({ anchorRect: anchorEl.getBoundingClientRect(), data });
+  const show = useCallback((anchorEl: HTMLElement, baseSkillId: string) => {
+    setHover({ anchorEl, baseSkillId });
   }, []);
 
-  const hide = useCallback(() => setRequest(null), []);
+  const hide = useCallback(() => setHover(null), []);
 
-  return { request, show, hide };
+  return { hover, show, hide };
 }

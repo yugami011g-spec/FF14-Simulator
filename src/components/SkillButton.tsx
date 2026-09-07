@@ -5,7 +5,7 @@ import type { JobDefinition } from "../types/job";
 import type { HistoryEntry } from "../types/history";
 import { getResourceUnavailableReason } from "../engine/gating";
 import { getAvailableCharges, getCooldownRemaining, getNextChargeRemaining } from "../engine/cooldowns";
-import { isComboSuccess, matchesEnhancedMode } from "../engine/potency";
+import { isComboSuccess } from "../engine/potency";
 import { useSkillInsertDrag } from "../hooks/useSkillInsertDrag";
 
 interface SkillButtonProps {
@@ -21,7 +21,9 @@ interface SkillButtonProps {
   gcdTrackRef: React.RefObject<HTMLElement | null>;
   abilityTrackRef: React.RefObject<HTMLElement | null>;
   onUse?: (skillId: string) => void;
-  onShowTooltip?: (anchorEl: HTMLElement, skill: Skill<any>) => void;
+  // 枠替え後もホバーを外し入れし直さずに最新のスキルへ追従できるよう、解決済みのSkillでは
+  // なく枠のbase skill id(常に固定)を渡す。呼び出し側が毎レンダー最新状態から引き直す。
+  onShowTooltip?: (anchorEl: HTMLElement, baseSkillId: string) => void;
   onHideTooltip?: () => void;
   onInsert?: (skillId: string, targetTime: number) => void;
   showGhost: (x: number, y: number, skillId: string, label: string) => void;
@@ -60,15 +62,16 @@ export function SkillButton({
   const badgeRemaining = skill.maxCharges ? getNextChargeRemaining(skill, snapshot, elapsedTime) : cooldownRemaining;
 
   const isComboAction = isComboSuccess(skill, snapshot, elapsedTime);
-  const isEnhancedReaping = Boolean(skill.enhancedBy && matchesEnhancedMode(snapshot, skill.enhancedBy));
-  const isReadyJobAction = Boolean(skill.requirements) && !resourceReason;
+  const isReadyJobAction = job.isRecommended
+    ? job.isRecommended(skill, snapshot, elapsedTime, resourceReason)
+    : Boolean(skill.requirements) && !resourceReason;
   const isReplaced = skill.id !== baseSkill.id;
 
   const classNames = [
     "action-tile",
     "skill-button",
     isPersonallyCooling || resourceReason ? "is-cooling" : "",
-    isComboAction || isEnhancedReaping || isReadyJobAction ? "is-combo" : "",
+    isComboAction || isReadyJobAction ? "is-combo" : "",
     isReplaced ? "is-replaced" : "",
     isPreviewing ? "is-previewing" : "",
   ]
@@ -76,7 +79,7 @@ export function SkillButton({
     .join(" ");
 
   const showTooltip = () => {
-    if (buttonRef.current) onShowTooltip?.(buttonRef.current, skill);
+    if (buttonRef.current) onShowTooltip?.(buttonRef.current, baseSkill.id);
   };
 
   const drag = useSkillInsertDrag({
@@ -113,7 +116,15 @@ export function SkillButton({
       onBlur={onHideTooltip}
     >
       <strong>
-        {!iconFailed && <img className="skill-icon" alt="" src={`${import.meta.env.BASE_URL}assets/icons/${skill.id}.png`} onError={() => setIconFailed(true)} />}
+        {!iconFailed && (
+          <img
+            className="skill-icon"
+            alt=""
+            draggable={false}
+            src={`${import.meta.env.BASE_URL}assets/icons/${skill.id}.png`}
+            onError={() => setIconFailed(true)}
+          />
+        )}
         {iconFailed && <span className="skill-name-fallback">{skill.shortName || skill.name}</span>}
         <em className="recast-time">{badgeRemaining > 0 ? `${badgeRemaining.toFixed(1)}s` : ""}</em>
         <i className="charge-badge">{charges === null ? "" : charges}</i>

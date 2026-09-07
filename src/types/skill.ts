@@ -43,7 +43,14 @@ export interface Skill<TJobEffects = Record<string, unknown>> {
   gcdRecast?: number | null;
   animationLock?: number;
   castTime?: number;
-  castTimeEnhancedBy?: string;
+  // 詠唱時間を無詠唱にするバフID。複数バフのいずれかで無詠唱になる場合(例: ナイトのホーリー
+  // スピリット/ホーリーサークルが「神聖魔法効果アップ」「レクイエスカット」のどちらでも無詠唱に
+  // なる)は配列で複数指定できる。
+  castTimeEnhancedBy?: string | string[];
+  // 戦闘開始(elapsedTime 0)より前は詠唱時間を無視して即着弾にする(0s以降は通常通りcastTimeが
+  // 発生する)。ソウルソウのように「開幕前は無詠唱で仕込めるが、戦闘中に使うと詠唱が発生する」
+  // 挙動を持つスキル用のフラグ。
+  noCastTimeBeforeCombat?: boolean;
   gaugeCost?: Record<string, number>;
   gaugeGain?: Record<string, number>;
   gaugeGainOnCombo?: boolean;
@@ -52,6 +59,9 @@ export interface Skill<TJobEffects = Record<string, unknown>> {
   unavailableDuringEnshroud?: boolean;
   effects?: Effect[];
   jobEffects?: TJobEffects;
+  // 公式ジョブガイド(https://jp.finalfantasyxiv.com/jobguide/)の「効果」欄の説明文を
+  // そのまま転記したもの。ツールチップ表示専用で、威力計算等のロジックには使わない。
+  officialEffect?: string;
 }
 
 export interface SlotVariant {

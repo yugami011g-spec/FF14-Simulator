@@ -20,6 +20,7 @@ export const skills: Record<string, ReaperSkill> = {
     gcd: true,
     gcdRecast: 2.5,
     animationLock: 0.67,
+    officialEffect: "対象に物理攻撃。　威力：300\n追加効果：対象に「デスデザイン」を付与する。\n効果時間：30秒\nデスデザイン効果：自身から対象に与えるダメージを10％上昇させる。\n効果時間中に対象が倒されると、自身の「ソウルゲージ」が10上昇する。\n既に「デスデザイン」が付与されている場合は、その効果時間を30秒延長する。\n最大60秒まで延長することができる。",
     effects: [{ type: "debuff", id: "deathDesign", name: "デスデザイン", duration: 30, maxDuration: 60, potencyMultiplier: 1.1, showOnTimeline: true }],
   },
   slice: {
@@ -38,6 +39,7 @@ export const skills: Record<string, ReaperSkill> = {
     animationLock: 0.67,
     gaugeGain: { soul: 10 },
     unavailableDuringEnshroud: true,
+    officialEffect: "対象に物理攻撃。　威力：420\n追加効果：「ソウルゲージ」を10上昇させる。",
     effects: [],
   },
   waxingSlice: {
@@ -57,6 +59,7 @@ export const skills: Record<string, ReaperSkill> = {
     gaugeGain: { soul: 10 },
     gaugeGainOnCombo: true,
     unavailableDuringEnshroud: true,
+    officialEffect: "対象に物理攻撃。　威力：260\nコンボ条件：スライス　コンボ時威力：500\nコンボボーナス：「ソウルゲージ」を10上昇させる。",
     effects: [],
   },
   infernalSlice: {
@@ -76,6 +79,7 @@ export const skills: Record<string, ReaperSkill> = {
     gaugeGain: { soul: 10 },
     gaugeGainOnCombo: true,
     unavailableDuringEnshroud: true,
+    officialEffect: "対象に物理攻撃。　威力：280\nコンボ条件：ワクシングスライス　コンボ時威力：600\nコンボボーナス：「ソウルゲージ」を10上昇させる。",
     effects: [],
   },
   soulSlice: {
@@ -96,6 +100,7 @@ export const skills: Record<string, ReaperSkill> = {
     animationLock: 0.67,
     gaugeGain: { soul: 50 },
     unavailableDuringEnshroud: true,
+    officialEffect: "対象に物理攻撃。　威力：520\n追加効果：「ソウルゲージ」を50上昇させる。\n最大チャージ数：2\nこのウェポンスキルは固有のリキャストタイマーを持ち、装備やステータスなどによって変化しない。\nリキャストタイマーを「ソウルサイズ」と共有する。",
     effects: [],
   },
   stalkSwathe: {
@@ -115,16 +120,29 @@ export const skills: Record<string, ReaperSkill> = {
     gaugeCost: { soul: 50 },
     jobEffects: { soulReaverSet: 1 },
     unavailableDuringEnshroud: true,
+    officialEffect: "アヴァターを呼び出し、対象に物理攻撃を実行させる。\n威力：340\n追加効果：自身に「妖異の鎌」を付与する。\n効果時間：30秒\n既に「妖異の鎌」が付与されている場合、そのスタック数に関わらず1スタックになる。\n「処刑人」とは同時に付与されない。\n発動条件：「ソウルゲージ」50\nリキャストタイマーを「グラトニー」以外のアヴァターを呼び出すアクションと共有する。",
     effects: [],
   },
+  shiffSwathe: createAction("shiffSwathe", "シーフスウェーズ", "シーフ", "ability", 140, {
+    recast: 1,
+    cooldownGroup: "avatar",
+    gaugeCost: { soul: 50 },
+    jobEffects: { soulReaverSet: 1 },
+    unavailableDuringEnshroud: true,
+    officialEffect: "アヴァターを呼び出し、対象に向かって前方扇範囲物理攻撃を実行させる。　威力：140\n追加効果：自身に「妖異の鎌」を付与する。\n効果時間：30秒\n既に「妖異の鎌」が付与されている場合、そのスタック数に関わらず1スタックになる。\n「処刑人」とは同時に付与されない。\n発動条件：「ソウルゲージ」50\nリキャストタイマーを「グラトニー」以外のアヴァターを呼び出すアクションと共有する。",
+  }),
   gibbet: {
     id: "gibbet",
     job: "reaper",
     name: "ジビトゥ",
     shortName: "ジビトゥ",
     type: "weaponskill",
-    potency: 500,
-    buffEnhancedPotency: 560,
+    // 本来は通常時500/効果アップ時560/側面攻撃時560/両方時620と条件が分かれるが、このシミュレー
+    // ターは方向指定(側面/背面)を扱わないため、常に方向指定が成功しているものとして計算する
+    // (ユーザー指定の方針)。よって「側面攻撃時」の値を基準potencyとし、「両方時」の値を
+    // buffEnhancedPotencyとする。
+    potency: 560,
+    buffEnhancedPotency: 620,
     buffEnhancedBy: "enhancedGibbet",
     comboPotency: null,
     requiredComboStep: null,
@@ -137,6 +155,7 @@ export const skills: Record<string, ReaperSkill> = {
     gaugeGain: { shroud: 10 },
     jobEffects: { soulReaverCost: 1, consumeBuff: "enhancedGibbet" },
     unavailableDuringEnshroud: true,
+    officialEffect: "対象に物理攻撃。　威力：500\nジビトゥ効果アップ時威力：560\n側面攻撃時威力：560\nジビトゥ効果アップかつ側面攻撃時威力：620\n追加効果：自身に「ギャロウズ効果アップ」を付与する。\n効果時間：60秒\n効果中はストークスウェーズがギャロウズクロウに変化する。\n追加効果：「シュラウドゲージ」を10上昇させる。\n発動条件：「妖異の鎌」効果中",
     effects: [{ type: "buff", id: "enhancedGallows", name: "ギャロウズ効果アップ", duration: 60 }],
   },
   gallows: {
@@ -145,8 +164,12 @@ export const skills: Record<string, ReaperSkill> = {
     name: "ギャロウズ",
     shortName: "ギャロウズ",
     type: "weaponskill",
-    potency: 500,
-    buffEnhancedPotency: 560,
+    // 本来は通常時500/効果アップ時560/背面攻撃時560/両方時620と条件が分かれるが、このシミュレー
+    // ターは方向指定(側面/背面)を扱わないため、常に方向指定が成功しているものとして計算する
+    // (ユーザー指定の方針)。よって「背面攻撃時」の値を基準potencyとし、「両方時」の値を
+    // buffEnhancedPotencyとする。
+    potency: 560,
+    buffEnhancedPotency: 620,
     buffEnhancedBy: "enhancedGallows",
     comboPotency: null,
     requiredComboStep: null,
@@ -159,6 +182,7 @@ export const skills: Record<string, ReaperSkill> = {
     gaugeGain: { shroud: 10 },
     jobEffects: { soulReaverCost: 1, consumeBuff: "enhancedGallows" },
     unavailableDuringEnshroud: true,
+    officialEffect: "対象に物理攻撃。　威力：500\nギャロウズ効果アップ時威力：560\n背面攻撃時威力：560\nギャロウズ効果アップかつ背面攻撃時威力：620\n追加効果：自身に「ジビトゥ効果アップ」を付与する。\n効果時間：60秒\n効果中はストークスウェーズがジビトゥクロウに変化する。\n追加効果：「シュラウドゲージ」を10上昇させる。\n発動条件：「妖異の鎌」効果中",
     effects: [{ type: "buff", id: "enhancedGibbet", name: "ジビトゥ効果アップ", duration: 60 }],
   },
   gluttony: {
@@ -177,6 +201,7 @@ export const skills: Record<string, ReaperSkill> = {
     gaugeCost: { soul: 50 },
     jobEffects: { executionerSet: 2, soulReaverSet: 0 },
     unavailableDuringEnshroud: true,
+    officialEffect: "アヴァターを呼び出し、対象とその周囲の敵に無属性範囲魔法攻撃を実行させる。　威力：560\n2体目以降の対象への威力は25％減少する。\n追加効果：自身に2スタックの「処刑人」を付与する。\n効果時間：30秒\n「妖異の鎌」とは同時に付与されない。\n発動条件：「ソウルゲージ」50",
     effects: [],
   },
   executionersGibbet: {
@@ -185,8 +210,10 @@ export const skills: Record<string, ReaperSkill> = {
     name: "エクスジビトゥ",
     shortName: "エクスジビトゥ",
     type: "weaponskill",
-    potency: 700,
-    buffEnhancedPotency: 760,
+    // 通常時700/効果アップ時760/側面攻撃時760/両方時820。方向指定は常に成功している前提
+    // (ユーザー指定の方針)なので「側面攻撃時」を基準、「両方時」をbuffEnhancedPotencyとする。
+    potency: 760,
+    buffEnhancedPotency: 820,
     buffEnhancedBy: "enhancedGibbet",
     comboPotency: null,
     requiredComboStep: null,
@@ -199,6 +226,7 @@ export const skills: Record<string, ReaperSkill> = {
     gaugeGain: { shroud: 10 },
     jobEffects: { executionerCost: 1, consumeBuff: "enhancedGibbet" },
     unavailableDuringEnshroud: true,
+    officialEffect: "対象に物理攻撃。　威力：700\nジビトゥ効果アップ時威力：760\n側面攻撃時威力：760\nジビトゥ効果アップかつ側面攻撃時威力：820\n追加効果：自身に「ギャロウズ効果アップ」を付与する。\n効果時間：60秒\n効果中はストークスウェーズがギャロウズクロウに変化する。\n追加効果：「シュラウドゲージ」を10上昇させる。\n発動条件：「処刑人」効果中\n\n※このアクションはホットバーに登録することはできない。\n　発動条件を満たすとジビトゥがエクスジビトゥに変化する。",
     effects: [{ type: "buff", id: "enhancedGallows", name: "ギャロウズ効果アップ", duration: 60 }],
   },
   executionersGallows: {
@@ -207,8 +235,10 @@ export const skills: Record<string, ReaperSkill> = {
     name: "エクスギャロウズ",
     shortName: "エクスギャロウズ",
     type: "weaponskill",
-    potency: 700,
-    buffEnhancedPotency: 760,
+    // 通常時700/効果アップ時760/背面攻撃時760/両方時820。方向指定は常に成功している前提
+    // (ユーザー指定の方針)なので「背面攻撃時」を基準、「両方時」をbuffEnhancedPotencyとする。
+    potency: 760,
+    buffEnhancedPotency: 820,
     buffEnhancedBy: "enhancedGallows",
     comboPotency: null,
     requiredComboStep: null,
@@ -221,6 +251,7 @@ export const skills: Record<string, ReaperSkill> = {
     gaugeGain: { shroud: 10 },
     jobEffects: { executionerCost: 1, consumeBuff: "enhancedGallows" },
     unavailableDuringEnshroud: true,
+    officialEffect: "対象に物理攻撃。　威力：700\nギャロウズ効果アップ時威力：760\n背面攻撃時威力：760\nギャロウズ効果アップかつ背面攻撃時威力：820\n追加効果：自身に「ジビトゥ効果アップ」を付与する。\n効果時間：60秒\n効果中はストークスウェーズがジビトゥクロウに変化する。\n追加効果：「シュラウドゲージ」を10上昇させる。\n発動条件：「処刑人」効果中\n\n※このアクションはホットバーに登録することはできない。\n　発動条件を満たすとギャロウズがエクスギャロウズに変化する。",
     effects: [{ type: "buff", id: "enhancedGibbet", name: "ジビトゥ効果アップ", duration: 60 }],
   },
   enshroud: {
@@ -240,6 +271,7 @@ export const skills: Record<string, ReaperSkill> = {
     requirements: { flags: { notEnshrouded: true } },
     jobEffects: { enterEnshroud: true },
     noTarget: true,
+    officialEffect: "自身にアヴァターを憑依させて「レムール」状態になり、自身に最大スタック分の「レムールソウル」を付与する。\n効果時間：30秒\n効果中はアヴァターを呼び出すアクションと一部のウェポンスキルを実行することができなくなる。\n追加効果：自身に「サクリフィキウム実行可」を付与する。\n効果時間：30秒\n発動条件：「シュラウドゲージ」50",
     effects: [],
   },
   voidReaping: {
@@ -260,6 +292,7 @@ export const skills: Record<string, ReaperSkill> = {
     animationLock: 0.67,
     requirements: { flags: { enshrouded: true }, stacks: { lemure: 1 } },
     jobEffects: { lemureCost: 1, voidGain: 1, reapingComboSet: "cross" },
+    officialEffect: "対象に物理攻撃。　威力：580\nヴォイドリーパー効果アップ時威力：640\n追加効果：自身に「クロスリーパー効果アップ」を付与する。\n効果時間：30秒\n追加効果：自身に「ヴォイドソウル」を付与する。\n発動条件：「レムールソウル」\nこのウェポンスキルは固有のリキャストタイマーを持ち、実行すると他のウェポンスキルと魔法にこのアクションと同じリキャストタイムが発生する。\n\n※このアクションはホットバーに登録することはできない。\n　発動条件を満たすとジビトゥがヴォイドリーパーに変化する。",
     effects: [],
   },
   crossReaping: {
@@ -280,6 +313,7 @@ export const skills: Record<string, ReaperSkill> = {
     animationLock: 0.67,
     requirements: { flags: { enshrouded: true }, stacks: { lemure: 1 } },
     jobEffects: { lemureCost: 1, voidGain: 1, reapingComboSet: "void" },
+    officialEffect: "対象に物理攻撃。　威力：580\nクロスリーパー効果アップ時威力：640\n追加効果：自身に「ヴォイドリーパー効果アップ」を付与する。\n効果時間：30秒\n追加効果：自身に「ヴォイドソウル」を付与する。\n発動条件：「レムールソウル」\nこのウェポンスキルは固有のリキャストタイマーを持ち、実行すると他のウェポンスキルと魔法にこのアクションと同じリキャストタイムが発生する。\n\n※このアクションはホットバーに登録することはできない。\n　発動条件を満たすとギャロウズがクロスリーパーに変化する。",
     effects: [],
   },
   lemureSlice: {
@@ -298,6 +332,7 @@ export const skills: Record<string, ReaperSkill> = {
     animationLock: 0.67,
     requirements: { flags: { enshrouded: true }, stacks: { void: 2 } },
     jobEffects: { voidCost: 2 },
+    officialEffect: "対象に物理攻撃。　威力：280\n発動条件：「ヴォイドソウル」2\nリキャストタイマーを「レムールサイズ」と共有する。\n\n※このアクションはホットバーに登録することはできない。\n　レムール効果中はストークスウェーズがレムールスライスに変化する。",
     effects: [],
   },
   communio: {
@@ -316,6 +351,7 @@ export const skills: Record<string, ReaperSkill> = {
     animationLock: 0.67,
     requirements: { flags: { enshrouded: true }, stacks: { lemure: 1 } },
     jobEffects: { exitEnshroud: true, promotePerfectio: true },
+    officialEffect: "対象とその周囲の敵に無属性範囲魔法攻撃。　威力：1100\n2体目以降の対象への威力は20％減少する。\n追加効果：「ペルフェクティオ待機」の効果時間中に実行すると「ペルフェクティオ実行可」を付与する。　効果時間：30秒\n実行時に「レムール」の効果が切れる。\n発動条件：「レムールソウル」1以上",
     effects: [],
   },
   sacrificium: {
@@ -333,6 +369,7 @@ export const skills: Record<string, ReaperSkill> = {
     animationLock: 0.67,
     requirements: { flags: { enshrouded: true, sacrificium: true } },
     jobEffects: { consumeSacrificium: true },
+    officialEffect: "対象とその周囲の敵に無属性範囲魔法攻撃。　威力：700\n2体目以降の対象への威力は20％減少する。\n発動条件：「レムール」かつ「サクリフィキウム実行可」効果中\n\n※このアクションはホットバーに登録することはできない。\n　発動条件を満たすとグラトニーがサクリフィキウムに変化する。",
     effects: [],
   },
   arcaneCircle: {
@@ -349,6 +386,7 @@ export const skills: Record<string, ReaperSkill> = {
     gcd: false,
     animationLock: 0.67,
     noTarget: true,
+    officialEffect: "自身と周囲のパーティメンバーの与ダメージを3％上昇させる。\n効果時間：20秒\n追加効果：自身と周囲のパーティメンバーに「供儀のサークル」を付与する。　効果時間：5秒\n供儀のサークル効果：効果中に対象者がウェポンスキル、魔法、アビリティによる攻撃を命中させると、供儀のサークルを付与したリーパーに「死の供物」が付与される。\n最大スタック数：8　効果時間：30秒\n追加効果：自身に「死の供儀」を付与する。　効果時間：6秒\n死の供儀効果：自身が供儀のサークルを付与した対象から死の供物を得ることができる。",
     effects: [
       { type: "buff", id: "arcaneCircle", name: "アルケインサークル", duration: 20, potencyMultiplier: 1.03, showOnTimeline: true },
       { type: "buff", id: "circleOfSacrifice", name: "供儀のサークル", duration: 5 },
@@ -385,73 +423,11 @@ function createAction(
 }
 
 Object.assign(skills, {
-  harpe: createAction("harpe", "ハルパー", "ハルパー", "spell", 300, {
-    // 詠唱時間(秒)。着弾はGCD開始(押した時刻)からこの秒数だけ後になります。ユーザー申告値のため要検証。
-    castTime: 1.3,
-    // 公式ジョブガイドいわく「ハルパー効果アップ」中は詠唱時間無しで詠唱できます(威力への影響はありません)。
-    castTimeEnhancedBy: "enhancedHarpe",
-    gaugeGain: { soul: 10 },
-    jobEffects: { consumeBuff: "enhancedHarpe", reduceCooldown: { group: "hellsMovement", amount: 5 } },
-    unavailableDuringEnshroud: true,
-  }),
-  hellsIngress: createAction("hellsIngress", "ヘルズイングレス", "イングレス", "ability", 0, {
-    recast: 20,
-    cooldownGroup: "hellsMovement",
-    noTarget: true,
-    effects: [
-      { type: "buff", id: "enhancedHarpe", name: "ハルパー効果アップ", duration: 10 },
-      { type: "buff", id: "returnReady", name: "リターン実行可", duration: 10 },
-    ],
-  }),
-  hellsEgress: createAction("hellsEgress", "ヘルズイーグレス", "イーグレス", "ability", 0, {
-    recast: 20,
-    cooldownGroup: "hellsMovement",
-    noTarget: true,
-    effects: [
-      { type: "buff", id: "enhancedHarpe", name: "ハルパー効果アップ", duration: 10 },
-      { type: "buff", id: "returnReady", name: "リターン実行可", duration: 10 },
-    ],
-  }),
-  spinningScythe: createAction("spinningScythe", "スピニングサイズ", "スピニング", "weaponskill", 140, {
-    comboStep: 11,
-    gaugeGain: { soul: 10 },
-    unavailableDuringEnshroud: true,
-  }),
-  whorlOfDeath: createAction("whorlOfDeath", "ワーラル・オブ・デス", "ワーラル", "weaponskill", 100, {
-    effects: [{ type: "debuff", id: "deathDesign", name: "デスデザイン", duration: 30, maxDuration: 60, potencyMultiplier: 1.1, showOnTimeline: true }],
-  }),
   arcaneCrest: createAction("arcaneCrest", "アルケインクレスト", "クレスト", "ability", 0, {
     recast: 30,
     noTarget: true,
-    effects: [{ type: "buff", id: "arcaneCrest", name: "守護のクレスト", duration: 5 }],
-  }),
-  nightmareScythe: createAction("nightmareScythe", "ナイトメアサイズ", "ナイトメア", "weaponskill", 120, {
-    comboPotency: 180,
-    requiredComboStep: 11,
-    comboStep: 12,
-    gaugeGain: { soul: 10 },
-    gaugeGainOnCombo: true,
-    unavailableDuringEnshroud: true,
-  }),
-  shiffSwathe: createAction("shiffSwathe", "シーフスウェーズ", "シーフ", "ability", 140, {
-    recast: 1,
-    cooldownGroup: "avatar",
-    gaugeCost: { soul: 50 },
-    jobEffects: { soulReaverSet: 1 },
-    unavailableDuringEnshroud: true,
-  }),
-  soulScythe: createAction("soulScythe", "ソウルサイズ", "ソウルサイズ", "weaponskill", 180, {
-    recast: 30,
-    maxCharges: 2,
-    chargeGroup: "soulSlice",
-    gaugeGain: { soul: 50 },
-    unavailableDuringEnshroud: true,
-  }),
-  guillotine: createAction("guillotine", "ギロティン", "ギロティン", "weaponskill", 200, {
-    requirements: { stacks: { soulReaver: 1 } },
-    gaugeGain: { shroud: 10 },
-    jobEffects: { soulReaverCost: 1 },
-    unavailableDuringEnshroud: true,
+    officialEffect: "自身に一定量のダメージを防ぐバリアである「守護のクレスト」を付与する。\nバリア量：自身の最大ＨＰの10％分　効果時間：5秒\nバリアがダメージを完全に吸収して消滅すると、自身と周囲15ｍ以内のパーティメンバーに「活性のクレスト」を付与する。\n活性のクレスト効果：対象のＨＰを継続回復する。\n回復力：50　効果時間：15秒",
+    effects: [{ type: "buff", id: "arcaneCrest", name: "守護のクレスト", duration: 5, showOnTimeline: true }],
   }),
   gibbetClaw: createAction("gibbetClaw", "ジビトゥクロウ", "ジビクロウ", "ability", 440, {
     recast: 1,
@@ -461,6 +437,7 @@ Object.assign(skills, {
     // ジビトゥ効果アップの消費はジビトゥ／エクスジビトゥ側が行うため、ここでは消費しません。
     jobEffects: { soulReaverSet: 1 },
     unavailableDuringEnshroud: true,
+    officialEffect: "アヴァターを呼び出し、対象に物理攻撃を実行させる。\n威力：440\n追加効果：自身に「妖異の鎌」を付与する。\n効果時間：30秒\n既に「妖異の鎌」が付与されている場合、そのスタック数に関わらず1スタックになる。\n「処刑人」とは同時に付与されない。\n発動条件：「ジビトゥ効果アップ」効果中かつ「ソウルゲージ」50\nリキャストタイマーを「グラトニー」以外のアヴァターを呼び出すアクションと共有する。\n\n※このアクションはホットバーに登録することはできない。\n　ジビトゥ効果アップの効果中はストークスウェーズがジビトゥクロウに変化する。",
   }),
   gallowsClaw: createAction("gallowsClaw", "ギャロウズクロウ", "ギャロクロウ", "ability", 440, {
     recast: 1,
@@ -470,69 +447,154 @@ Object.assign(skills, {
     // ギャロウズ効果アップの消費はギャロウズ／エクスギャロウズ側が行うため、ここでは消費しません。
     jobEffects: { soulReaverSet: 1 },
     unavailableDuringEnshroud: true,
+    officialEffect: "アヴァターを呼び出し、対象に物理攻撃を実行させる。\n威力：440\n追加効果：自身に「妖異の鎌」を付与する。\n効果時間：30秒\n既に「妖異の鎌」が付与されている場合、そのスタック数に関わらず1スタックになる。\n「処刑人」とは同時に付与されない。\n発動条件：「ギャロウズ効果アップ」効果中かつ「ソウルゲージ」50\nリキャストタイマーを「グラトニー」以外のアヴァターを呼び出すアクションと共有する。\n\n※このアクションはホットバーに登録することはできない。\n　ギャロウズ効果アップの効果中はストークスウェーズがギャロウズクロウに変化する。",
+  }),
+  hellsIngress: createAction("hellsIngress", "ヘルズイングレス", "イングレス", "ability", 0, {
+    recast: 20,
+    cooldownGroup: "hellsMovement",
+    noTarget: true,
+    officialEffect: "自身の15m前方に向かって素早く移動する。\n追加効果：自身に「ハルパー効果アップ」を付与する。\nハルパー効果アップ効果：次に実行するハルパーを詠唱時間無しで詠唱できる。\nさらに、実行時にヘルズイングレスのリキャストタイムを5秒短縮する。　効果時間：10秒\n追加効果：移動する直前の地点に「ヘルズゲート」を生成し、自身に「リターン実行可」を付与する。　効果時間：10秒\nバインド中は実行不可。\nリキャストタイマーを「ヘルズイーグレス」と共有する。",
+    effects: [
+      { type: "buff", id: "enhancedHarpe", name: "ハルパー効果アップ", duration: 10 },
+      { type: "buff", id: "returnReady", name: "リターン実行可", duration: 10 },
+    ],
+  }),
+  hellsEgress: createAction("hellsEgress", "ヘルズイーグレス", "イーグレス", "ability", 0, {
+    recast: 20,
+    cooldownGroup: "hellsMovement",
+    noTarget: true,
+    officialEffect: "自身の15m後方に向かって素早く移動する。\n追加効果：自身に「ハルパー効果アップ」を付与する。\nハルパー効果アップ効果：次に実行するハルパーを詠唱時間無しで詠唱できる。\nさらに、実行時にヘルズイーグレスのリキャストタイムを5秒短縮する。　効果時間：10秒\n追加効果：移動する直前の地点に「ヘルズゲート」を生成し、自身に「リターン実行可」を付与する。　効果時間：10秒\nバインド中は実行不可。\nリキャストタイマーを「ヘルズイングレス」と共有する。",
+    effects: [
+      { type: "buff", id: "enhancedHarpe", name: "ハルパー効果アップ", duration: 10 },
+      { type: "buff", id: "returnReady", name: "リターン実行可", duration: 10 },
+    ],
   }),
   returnAction: createAction("returnAction", "リターン", "リターン", "ability", 0, {
     recast: 1,
     requirements: { buff: "returnReady" },
     jobEffects: { consumeBuff: "returnReady" },
     noTarget: true,
+    officialEffect: "自身が生成した「ヘルズゲート」の中心へ素早く移動する。\nバインド中は実行不可。\n発動条件：「リターン実行可」効果中\n\n※このアクションはホットバーに登録することはできない。\n　発動条件を満たすとヘルズイングレスまたはヘルズイーグレスがリターンに変化する。",
   }),
   grimReaping: createAction("grimReaping", "グリムリーパー", "グリム", "weaponskill", 220, {
     gcdRecast: 1.5,
     requirements: { flags: { enshrouded: true }, stacks: { lemure: 1 } },
     jobEffects: { lemureCost: 1, voidGain: 1 },
+    officialEffect: "対象に向かって前方扇範囲物理攻撃。　威力：220\n追加効果：自身に「ヴォイドソウル」を付与する。\n発動条件：「レムールソウル」\nこのウェポンスキルは固有のリキャストタイマーを持ち、実行すると他のウェポンスキルと魔法にこのアクションと同じリキャストタイムが発生する。\n\n※このアクションはホットバーに登録することはできない。\n　発動条件を満たすとギロティンがグリムリーパーに変化する。",
+  }),
+  plentifulHarvest: createAction("plentifulHarvest", "プレンティフルハーベスト", "プレンティ", "weaponskill", 720, {
+    dynamicPotency: "immortalSacrifice",
+    requirements: { stacks: { immortalSacrifice: 1 }, buffAbsent: "bloodsownCircle" },
+    jobEffects: { consumeImmortalSacrifice: true, grantEnshroudReady: true, grantPerfectioPending: true },
+    officialEffect: "対象に向かって前方直線範囲物理攻撃。\nこのアクションの威力は、自身に付与されている「死の供物」のスタック数により変化する。\n威力：720～1000\n2体目以降の対象への威力は20％減少する。\n実行時に「死の供物」を全て消費する。\n追加効果：自身に「レムールシュラウド実行可」を付与する。\n効果時間：30秒\n追加効果：自身に「ペルフェクティオ待機」を付与する。\n効果時間：30秒\nペルフェクティオ待機効果：効果中にコムニオを実行すると「ペルフェクティオ実行可」に変化する。\n発動条件：「死の供儀」非効果中かつ「死の供物」1以上",
+  }),
+  harpe: createAction("harpe", "ハルパー", "ハルパー", "spell", 300, {
+    // 詠唱時間(秒)。着弾はGCD開始(押した時刻)からこの秒数だけ後になります。ユーザー申告値のため要検証。
+    castTime: 1.3,
+    // 公式ジョブガイドいわく「ハルパー効果アップ」中は詠唱時間無しで詠唱できます(威力への影響はありません)。
+    castTimeEnhancedBy: "enhancedHarpe",
+    gaugeGain: { soul: 10 },
+    jobEffects: { consumeBuff: "enhancedHarpe", reduceCooldown: { group: "hellsMovement", amount: 5 } },
+    unavailableDuringEnshroud: true,
+    officialEffect: "対象に無属性魔法攻撃。　威力：300\n追加効果：「ソウルゲージ」を10上昇させる。",
   }),
   soulSow: createAction("soulSow", "ソウルソウ", "ソウルソウ", "spell", 0, {
+    // 戦闘開始前は無詠唱の通常GCDとして仕込めるが、戦闘開始(0s)後に使うと5秒の詠唱が発生する。
+    castTime: 5,
+    noCastTimeBeforeCombat: true,
     jobEffects: { applyPersistentBuff: { id: "soulSow", name: "ソウルソウ" } },
     noTarget: true,
+    officialEffect: "自身に「ソウルソウ」を付与し、このアクションが「ハーベストムーン」に変化する。　効果時間：永続\n自身が非戦闘状態であれば詠唱時間無しで詠唱することができる。",
   }),
   harvestMoon: createAction("harvestMoon", "ハーベストムーン", "ハーベスト", "spell", 800, {
     gaugeGain: { soul: 10 },
     requirements: { buff: "soulSow" },
     jobEffects: { consumeBuff: "soulSow" },
+    officialEffect: "対象とその周囲の敵に無属性範囲魔法攻撃。　威力：800\n2体目以降の対象への威力は40％減少する。\n追加効果：「ソウルゲージ」を10上昇させる。\n発動条件：「ソウルソウ」\n\n※このアクションはホットバーに登録することはできない。\n　発動条件を満たすとソウルソウがハーベストムーンに変化する。",
   }),
   lemureScythe: createAction("lemureScythe", "レムールサイズ", "レムールサイズ", "ability", 100, {
     recast: 1,
     cooldownGroup: "lemureAttack",
     requirements: { flags: { enshrouded: true }, stacks: { void: 2 } },
     jobEffects: { voidCost: 2 },
+    officialEffect: "対象に向かって前方扇範囲物理攻撃。　威力：100\n発動条件：「ヴォイドソウル」2\nリキャストタイマーを「レムールスライス」と共有する。\n\n※このアクションはホットバーに登録することはできない。\n　レムール効果中はシーフスウェーズがレムールサイズに変化する。",
   }),
-  plentifulHarvest: createAction("plentifulHarvest", "プレンティフルハーベスト", "プレンティ", "weaponskill", 720, {
-    dynamicPotency: "immortalSacrifice",
-    requirements: { stacks: { immortalSacrifice: 1 }, buffAbsent: "bloodsownCircle" },
-    jobEffects: { consumeImmortalSacrifice: true, grantEnshroudReady: true, grantPerfectioPending: true },
+  whorlOfDeath: createAction("whorlOfDeath", "ワーラル・オブ・デス", "ワーラル", "weaponskill", 100, {
+    officialEffect: "自身の周囲の敵に範囲物理攻撃。　威力：100\n追加効果：対象に「デスデザイン」を付与する。\n効果時間：30秒\nデスデザイン効果：自身から対象に与えるダメージを10％上昇させる。\n効果時間中に対象が倒されると、自身の「ソウルゲージ」が10上昇する。\n既に「デスデザイン」が付与されている場合は、その効果時間を30秒延長する。\n最大60秒まで延長することができる。",
+    effects: [{ type: "debuff", id: "deathDesign", name: "デスデザイン", duration: 30, maxDuration: 60, potencyMultiplier: 1.1, showOnTimeline: true }],
+  }),
+  spinningScythe: createAction("spinningScythe", "スピニングサイズ", "スピニング", "weaponskill", 140, {
+    comboStep: 11,
+    gaugeGain: { soul: 10 },
+    unavailableDuringEnshroud: true,
+    officialEffect: "自身の周囲の敵に範囲物理攻撃。　威力：140\n追加効果：「ソウルゲージ」を10上昇させる。",
+  }),
+  nightmareScythe: createAction("nightmareScythe", "ナイトメアサイズ", "ナイトメア", "weaponskill", 120, {
+    comboPotency: 180,
+    requiredComboStep: 11,
+    comboStep: 12,
+    gaugeGain: { soul: 10 },
+    gaugeGainOnCombo: true,
+    unavailableDuringEnshroud: true,
+    officialEffect: "自身の周囲の敵に範囲物理攻撃。　威力：120\nコンボ条件：スピニングサイズ　コンボ時威力：180\nコンボボーナス：「ソウルゲージ」を10上昇させる。",
+  }),
+  soulScythe: createAction("soulScythe", "ソウルサイズ", "ソウルサイズ", "weaponskill", 180, {
+    recast: 30,
+    maxCharges: 2,
+    chargeGroup: "soulSlice",
+    gaugeGain: { soul: 50 },
+    unavailableDuringEnshroud: true,
+    officialEffect: "自身の周囲の敵に範囲物理攻撃。　威力：180\n追加効果：「ソウルゲージ」を50上昇させる。\n最大チャージ数：2\nこのウェポンスキルは固有のリキャストタイマーを持ち、装備やステータスなどによって変化しない。\nリキャストタイマーを「ソウルスライス」と共有する。",
+  }),
+  guillotine: createAction("guillotine", "ギロティン", "ギロティン", "weaponskill", 200, {
+    requirements: { stacks: { soulReaver: 1 } },
+    gaugeGain: { shroud: 10 },
+    jobEffects: { soulReaverCost: 1 },
+    unavailableDuringEnshroud: true,
+    officialEffect: "対象に向かって前方扇範囲物理攻撃。　威力：200\n追加効果：「シュラウドゲージ」を10上昇させる。\n発動条件：「妖異の鎌」効果中",
   }),
   executionersGuillotine: createAction("executionersGuillotine", "エクスギロティン", "エクスギロ", "weaponskill", 260, {
     requirements: { stacks: { executioner: 1 } },
     gaugeGain: { shroud: 10 },
     jobEffects: { executionerCost: 1 },
     unavailableDuringEnshroud: true,
+    officialEffect: "対象に向かって前方扇範囲物理攻撃。　威力：260\n追加効果：「シュラウドゲージ」を10上昇させる。\n発動条件：「処刑人」効果中\n\n※このアクションはホットバーに登録することはできない。\n　発動条件を満たすとギロティンがエクスギロティンに変化する。",
   }),
   perfectio: createAction("perfectio", "ペルフェクティオ", "ペルフェ", "weaponskill", 1300, {
     requirements: { buff: "perfectioReady" },
     jobEffects: { consumeBuff: "perfectioReady" },
+    officialEffect: "対象とその周囲の敵に範囲物理攻撃。　威力：1300\n2体目以降の対象への威力は20％減少する。\n発動条件：「ペルフェクティオ実行可」効果中\n\n※このアクションはホットバーに登録することはできない。\n　発動条件を満たすとコムニオがペルフェクティオに変化する。",
   }),
-  secondWind: createAction("secondWind", "内丹", "内丹", "ability", 0, { category: "role", recast: 120, noTarget: true }),
+  secondWind: createAction("secondWind", "内丹", "内丹", "ability", 0, {
+    category: "role",
+    recast: 120,
+    noTarget: true,
+    officialEffect: "自身のＨＰを回復する。　回復力：800",
+  }),
   legSweep: createAction("legSweep", "レッグスウィープ", "レッグ", "ability", 0, {
     category: "role",
     recast: 40,
+    officialEffect: "対象をスタンさせる。　効果時間：3秒",
     effects: [{ type: "debuff", id: "stun", name: "スタン", duration: 3 }],
   }),
   bloodbath: createAction("bloodbath", "ブラッドバス", "ブラッドバス", "ability", 0, {
     category: "role",
     recast: 90,
     noTarget: true,
+    officialEffect: "一定時間、自身の物理攻撃に、与えたダメージの一部をＨＰとして吸収する効果を付与する。　効果時間：20秒",
     effects: [{ type: "buff", id: "bloodbath", name: "ブラッドバス", duration: 20, showOnTimeline: true }],
   }),
   feint: createAction("feint", "牽制", "牽制", "ability", 0, {
     category: "role",
     recast: 90,
+    officialEffect: "一定時間、対象の与物理ダメージを10％、与魔法ダメージを5％減少させる。　効果時間：15秒",
     effects: [{ type: "debuff", id: "feint", name: "牽制", duration: 15, showOnTimeline: true }],
   }),
   armsLength: createAction("armsLength", "アームズレングス", "アームズ", "ability", 0, {
     category: "role",
     recast: 120,
     noTarget: true,
+    officialEffect: "一定時間、一部を除くすべてのノックバックと引き寄せを無効化する。　効果時間：6秒\n追加効果：効果中に自身が物理攻撃を受けると、攻撃者に20％スロウを付与する。　効果時間：15秒",
     effects: [{ type: "buff", id: "armsLength", name: "アームズレングス", duration: 6, showOnTimeline: true }],
   }),
   trueNorth: createAction("trueNorth", "トゥルーノース", "トゥルー", "ability", 0, {
@@ -541,15 +603,19 @@ Object.assign(skills, {
     maxCharges: 2,
     chargeGroup: "trueNorth",
     noTarget: true,
+    officialEffect: "一定時間、方向指定条件のあるアクションをどの方向から実行しても成功させる。　効果時間：10秒\n最大チャージ数：2",
     effects: [{ type: "buff", id: "trueNorth", name: "トゥルーノース", duration: 10, showOnTimeline: true }],
   }),
   tincture: createAction("tincture", "薬", "薬", "ability", 0, {
     // 効果: 30秒間メインステータス+10%(公式ロードストーン記事の記述に基づく)。
     // 威力計算では簡略化し、既存のデスデザイン/アルケインサークルと同様に威力への乗算バフとして扱います。
     // リキャストタイムは現行パッチの一般的な値(270秒=4分30秒)を採用していますが未検証です。
+    // 「薬」はジョブガイドに掲載されているアクションではないため、officialEffectはロードストーン
+    // 記事に基づく記述であり公式ジョブガイドからの引用ではない(他スキルと出典が異なる)。
     category: "role",
     recast: 270,
     noTarget: true,
+    officialEffect: "自身のメインステータスが一定時間上昇する(具体的な数値・時間は未検証)",
     effects: [{ type: "buff", id: "tincture", name: "薬", duration: 30, potencyMultiplier: 1.1, showOnTimeline: true }],
   }),
 } satisfies Record<string, ReaperSkill>);

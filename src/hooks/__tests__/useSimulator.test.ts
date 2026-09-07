@@ -38,9 +38,11 @@ describe("useSimulator (integration: hook wiring, not just the pure engine)", ()
     }
 
     // legacy cross-check (scripts/cross-check-legacy.cjs, live useSkill path):
-    // totalPotency=2780, soulGauge=0, shroudGauge=20, historyCount=6
+    // totalPotency=2780, soulGauge=0, shroudGauge=20, historyCount=6。
+    // ただしジビトゥ/ギャロウズ(計2回)は方向指定を常に成功しているものとして計算する仕様のため
+    // +120(=60×2)高い2900になる。
     expect(result.current.history).toHaveLength(6);
-    expect(result.current.final.totalPotency).toBe(2780);
+    expect(result.current.final.totalPotency).toBe(2900);
     expect(result.current.final.gauges.soul).toBe(0);
     expect(result.current.final.gauges.shroud).toBe(20);
     expect(result.current.message).not.toBe("");

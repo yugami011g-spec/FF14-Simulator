@@ -1,4 +1,4 @@
-import type { JobDefinition } from "../types/job";
+import type { JobDefinition, StackDef } from "../types/job";
 import type { SimSnapshot } from "../types/state";
 
 interface GaugePanelProps {
@@ -6,23 +6,21 @@ interface GaugePanelProps {
   snapshot: SimSnapshot;
 }
 
-// レムール(残り)とヴォイド(消費済み)は常に合計5になる(ヴォイドリーパー/クロスリーパーが
-// レムールを1消費するたびヴォイドを1獲得するため)ので、1本のバーへ統合して表示します。
-// 左側から消費済み(ヴォイド)ぶんを塗り、続けて残り(レムール)ぶんを別色で塗ります。
-function ShroudStacks({ snapshot }: { snapshot: SimSnapshot }) {
-  const lemure = snapshot.jobState.lemure?.kind === "counter" ? snapshot.jobState.lemure.value : 0;
-  const voidStacks = snapshot.jobState.void?.kind === "counter" ? snapshot.jobState.void.value : 0;
-  const dots = Array.from({ length: 5 }, (_, index) => ({
-    isVoid: index < voidStacks,
-    isActive: index >= voidStacks && index < voidStacks + lemure,
-  }));
+const DEFAULT_GAUGE_COLOR = "var(--blue)";
+const DEFAULT_STACK_COLOR = "var(--cyan)";
+
+// StackDef 1件につき1本のドット列を描画する汎用表示。ジョブが renderCustomGaugeExtras を
+// 指定していない場合のデフォルト描画に使う(現在値ぶんを stackDef.color で塗る単純な集計)。
+function StackDots({ stackDef, snapshot }: { stackDef: StackDef; snapshot: SimSnapshot }) {
+  const entry = snapshot.jobState[stackDef.key];
+  const value = entry?.kind === "counter" ? entry.value : 0;
+  const color = stackDef.color ?? DEFAULT_STACK_COLOR;
   return (
-    <div className="stack-block">
-      <h3>スタック</h3>
-      <span>シュラウドスタック</span>
-      <div className="stack-dots" aria-label={`シュラウドスタック 残り${lemure} / 消費済み${voidStacks}`}>
-        {dots.map((dot, index) => (
-          <i key={index} className={[dot.isVoid ? "is-void" : "", dot.isActive ? "is-active" : ""].filter(Boolean).join(" ")} />
+    <div className="stack-block" key={stackDef.key}>
+      <span>{stackDef.label}</span>
+      <div className="stack-dots" aria-label={`${stackDef.label} ${value}/${stackDef.maxDots}`}>
+        {Array.from({ length: stackDef.maxDots }, (_, index) => (
+          <i key={index} style={index < value ? { borderColor: color, background: color } : undefined} />
         ))}
       </div>
     </div>
@@ -30,13 +28,24 @@ function ShroudStacks({ snapshot }: { snapshot: SimSnapshot }) {
 }
 
 export function GaugePanel({ job, snapshot }: GaugePanelProps) {
+  const gaugeExtras = job.renderCustomGaugeExtras
+    ? job.renderCustomGaugeExtras(snapshot)
+    : job.stackDefs.length > 0 && (
+        <div className="stack-block">
+          <h3>スタック</h3>
+          {job.stackDefs.map((stackDef) => (
+            <StackDots key={stackDef.key} stackDef={stackDef} snapshot={snapshot} />
+          ))}
+        </div>
+      );
+
   return (
     <section className="panel gauge-panel">
       <header className="panel-header">
         <h2>ジョブゲージ</h2>
       </header>
       <div className="panel-body">
-        {job.gaugeDefs.map((gaugeDef, index) => {
+        {job.gaugeDefs.map((gaugeDef) => {
           const value = snapshot.gauges[gaugeDef.key] ?? 0;
           return (
             <div className="gauge-block" key={gaugeDef.key}>
@@ -46,13 +55,13 @@ export function GaugePanel({ job, snapshot }: GaugePanelProps) {
                   {value} / {gaugeDef.max}
                 </strong>
               </div>
-              <div className={`gauge-bar${index === 1 ? " gauge-bar-dark" : ""}`}>
-                <span style={{ width: `${(value / gaugeDef.max) * 100}%` }} />
+              <div className="gauge-bar">
+                <span style={{ width: `${(value / gaugeDef.max) * 100}%`, background: gaugeDef.color ?? DEFAULT_GAUGE_COLOR }} />
               </div>
             </div>
           );
         })}
-        <ShroudStacks snapshot={snapshot} />
+        {gaugeExtras}
       </div>
     </section>
   );

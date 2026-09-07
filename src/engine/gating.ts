@@ -16,6 +16,20 @@ export function getActiveSlotSkill(
   return activeVariant ? job.skills[activeVariant.skillId] : job.skills[slot.base];
 }
 
+// 枠のbase skill id(ボタンの見た目上のスロット、例: "communio")から、現在の状態で表示すべき
+// アクティブなスキル(枠替え後、例: "perfectio")を引きます。ホバー中のツールチップ等、「どの
+// 枠を見ているか」だけを保持しておき、状態が変わるたびに毎回このヘルパーで引き直すために使います
+// (枠替わり後もホバーを外し入れし直すまで古いスキル情報が表示され続ける不具合の再発防止)。
+export function getActiveSkillByBaseId(
+  job: JobDefinition<any>,
+  baseSkillId: string,
+  snapshot: SimSnapshot,
+  elapsedTime: number,
+): Skill<any> {
+  const slot = job.actionSlots.find((candidate) => candidate.base === baseSkillId);
+  return slot ? getActiveSlotSkill(job, slot, snapshot, elapsedTime) : job.skills[baseSkillId];
+}
+
 export function requiresTarget(skill: Skill<any>): boolean {
   return !skill.noTarget;
 }

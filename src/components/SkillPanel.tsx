@@ -1,10 +1,8 @@
 import { useMemo } from "react";
-import type { Skill } from "../types/skill";
 import type { JobDefinition } from "../types/job";
 import type { SimSettings, SimSnapshot } from "../types/state";
 import type { HistoryEntry } from "../types/history";
 import { getActiveSlotSkill } from "../engine/gating";
-import { buildSkillTooltipData, type SkillTooltipData } from "../engine/tooltipText";
 import { SkillButton } from "./SkillButton";
 
 interface SkillPanelProps {
@@ -23,7 +21,7 @@ interface SkillPanelProps {
   onWait?: (duration: number) => void;
   onUndo?: () => void;
   onGcdSettingChange?: (value: number) => void;
-  onShowTooltip?: (anchorEl: HTMLElement, data: SkillTooltipData) => void;
+  onShowTooltip?: (anchorEl: HTMLElement, baseSkillId: string) => void;
   onHideTooltip?: () => void;
   onInsertSkill?: (skillId: string, targetTime: number) => void;
   showGhost: (x: number, y: number, skillId: string, label: string) => void;
@@ -62,10 +60,6 @@ export function SkillPanel({
     [job],
   );
 
-  const handleShowTooltip = (anchorEl: HTMLElement, skill: Skill<any>) => {
-    onShowTooltip?.(anchorEl, buildSkillTooltipData(skill, snapshot, elapsedTime, settings, job, job.buffNames));
-  };
-
   const groups: Record<"weaponskill" | "ability" | "role", { base: (typeof job.skills)[string]; active: (typeof job.skills)[string] }[]> = {
     weaponskill: [],
     ability: [],
@@ -103,7 +97,7 @@ export function SkillPanel({
       </header>
       <div className="panel-body">
         <section className="skill-category">
-          <h3>ウェポンスキル</h3>
+          <h3>ウェポンスキル/魔法</h3>
           <div className="action-grid">
             {groups.weaponskill.map(({ base, active }) => (
               <SkillButton
@@ -117,7 +111,7 @@ export function SkillPanel({
                 history={history}
                 isPreviewing={isPreviewing}
                 onUse={onUseSkill}
-                onShowTooltip={handleShowTooltip}
+                onShowTooltip={onShowTooltip}
                 onHideTooltip={onHideTooltip}
                 onInsert={onInsertSkill}
                 chartRef={chartRef}
@@ -145,7 +139,7 @@ export function SkillPanel({
                 history={history}
                 isPreviewing={isPreviewing}
                 onUse={onUseSkill}
-                onShowTooltip={handleShowTooltip}
+                onShowTooltip={onShowTooltip}
                 onHideTooltip={onHideTooltip}
                 onInsert={onInsertSkill}
                 chartRef={chartRef}
@@ -173,7 +167,7 @@ export function SkillPanel({
                 history={history}
                 isPreviewing={isPreviewing}
                 onUse={onUseSkill}
-                onShowTooltip={handleShowTooltip}
+                onShowTooltip={onShowTooltip}
                 onHideTooltip={onHideTooltip}
                 onInsert={onInsertSkill}
                 chartRef={chartRef}

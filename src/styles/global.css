@@ -8,6 +8,14 @@
   --blue: #1a73e8;
   --danger: #c54c5b;
   --combo: #f26922;
+  --cyan: #00acc1;
+  --purple: #8e24aa;
+  --pink: #d6409f;
+  --yellow: #f2b90c;
+  --red: #d32f2f;
+  --red-dark: #7b2020;
+  --red-bright: #ef5350;
+  --blue-dark: #1a3e8e;
 }
 
 * { box-sizing: border-box; }
@@ -34,6 +42,11 @@ button, output { font: inherit; }
   justify-content: space-between;
 }
 
+.app-header-title { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.job-tabs { display: flex; gap: 4px; }
+.job-tab { min-height: 26px; padding: 4px 12px; border: 1px solid var(--border); border-radius: 6px; background: transparent; color: var(--muted); font-size: 12px; cursor: pointer; }
+.job-tab:hover { background: #f1f3f4; }
+.job-tab.is-active { border-color: var(--blue); color: var(--blue); background: rgba(26,115,232,.08); }
 .header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
 h1, h2, h3, p { margin: 0; }
@@ -115,6 +128,9 @@ h3 { margin-bottom: 14px; font-size: 12px; font-weight: 500; }
 .timeline-ticks { position: relative; width: calc(100% - 48px); height: 34px; cursor: ew-resize; touch-action: none; }
 .timeline-tick { position: absolute; top: 0; color: var(--muted); font-size: 10px; transform: translateX(-50%); }
 .timeline-tick::after { content: ""; position: absolute; top: 24px; left: 50%; width: 1px; height: 164px; background: rgba(218,220,224,.7); }
+/* 戦闘開始(0s)地点は、他の目盛りと区別できるようオレンジ色にする。 */
+.timeline-tick.is-combat-start { color: var(--combo); font-weight: 600; }
+.timeline-tick.is-combat-start::after { background: var(--combo); width: 2px; }
 .timeline-axis { width: calc(100% - 48px); height: 2px; background: var(--border-strong); }
 .timeline-row { height: 62px; }
 .timeline-row-effect { height: 76px; }
@@ -128,10 +144,9 @@ h3 { margin-bottom: 14px; font-size: 12px; font-weight: 500; }
 /* 区切り線は行(.timeline-row)ではなくトラック(目盛りと同じ calc(100% - 48px) 幅)に付けることで、
    末尾の余白(TIMELINE_RIGHT_MARGIN)へ線がはみ出して見えないようにします。 */
 .timeline-row-gcd .timeline-track, .timeline-row-ability .timeline-track { border-bottom: 1px solid #e8eaed; }
-/* アイコン自体に縁取りがあるため、通常時の枠線は透明にします(ホバー時の
-   色付き枠は残せるよう、0pxではなくtransparentにしています)。 */
-.timeline-action { position: absolute; top: 8px; z-index: 1; display: grid; width: 44px; height: 44px; padding: 4px; place-items: center; border: 1px solid transparent; border-radius: 8px; color: var(--text); background: #fff; font-size: 9px; line-height: 11px; text-align: center; pointer-events: auto; transition: transform .12s ease, box-shadow .12s ease; }
-.timeline-action:hover { border-color: var(--blue); }
+/* 通常時・ホバー時ともに枠は透明にします(枠が付いていると強調表示(is-combo等)の視認性が
+   下がるため)。is-replacedはbox-shadowで別途上書きされます。 */
+.timeline-action { position: absolute; top: 8px; z-index: 1; display: grid; width: 44px; height: 44px; padding: 4px; place-items: center; border: 2px solid transparent; border-radius: 8px; color: var(--text); background: #fff; font-size: 9px; line-height: 11px; text-align: center; pointer-events: auto; transition: transform .12s ease, box-shadow .12s ease; }
 .timeline-action.has-clipping { box-shadow: inset 0 -3px var(--danger); }
 /* 削除はタイル本体のクリックではなく、ホバー時だけ現れるこの×ボタンから行います。 */
 .timeline-action-delete { position: absolute; top: -7px; right: -7px; z-index: 6; display: none; align-items: center; justify-content: center; width: 16px; height: 16px; border: 1px solid #fff; border-radius: 50%; background: var(--danger); color: #fff; font-size: 11px; line-height: 1; pointer-events: auto; cursor: pointer; }
@@ -178,13 +193,20 @@ h3 { margin-bottom: 14px; font-size: 12px; font-weight: 500; }
 .timeline-effect-label { position: sticky; left: 4px; }
 .timeline-effect-debuff { background: rgba(232,234,237,.95); color: var(--text); }
 .timeline-effect-buff { border-color: var(--blue); background: rgba(232,240,254,.95); color: #174ea6; }
+/* 効果ID別の配色(各アイコンのイメージに合わせる)。.timeline-effect-buff/-debuffと同じ
+   詳細度(単一クラス)のため、上のルールより後ろに書くことで該当IDだけ上書きする。 */
+.timeline-effect-id-arcaneCircle { border-color: var(--pink); background: rgba(214,64,159,.16); color: #9c1668; }
+.timeline-effect-id-deathDesign { border-color: var(--purple); background: rgba(142,36,170,.16); color: #6a1b7a; }
+.timeline-effect-id-bloodbath { border-color: var(--red-dark); background: rgba(123,32,32,.18); color: var(--red-dark); }
+.timeline-effect-id-feint { border-color: var(--red-bright); background: rgba(239,83,80,.18); color: #c62828; }
+.timeline-effect-id-armsLength { border-color: var(--blue-dark); background: rgba(26,62,142,.16); color: var(--blue-dark); }
+.timeline-effect-id-trueNorth { border-color: var(--yellow); background: rgba(242,185,12,.2); color: #8a6100; }
+.timeline-effect-id-tincture { border-color: var(--red); background: rgba(211,47,47,.16); color: var(--red); }
 .time-indicator { position: absolute; z-index: 2; top: -12px; bottom: 16px; left: 0; width: 10px; margin-left: -4px; background: linear-gradient(90deg, transparent 4px, var(--blue) 4px, var(--blue) 6px, transparent 6px); cursor: ew-resize; touch-action: none; }
 .time-indicator::before { content: ""; position: absolute; top: 8px; left: 1px; width: 8px; height: 8px; border-radius: 50%; background: var(--blue); }
 .time-indicator span { position: absolute; top: -9px; left: 50%; padding: 1px 4px; background: #fff; color: var(--text); font-size: 10px; white-space: nowrap; transform: translateX(-50%); }
 .time-indicator.is-previewing, .time-indicator.is-dragging { background: linear-gradient(90deg, transparent 4px, var(--blue) 4px, var(--blue) 6px, transparent 6px); }
 .time-indicator.is-previewing::before { background: var(--blue); }
-.combat-start-marker { position: absolute; z-index: 1; top: -12px; bottom: 16px; left: 0; width: 2px; background: var(--combo); pointer-events: none; }
-.combat-start-marker span { position: absolute; top: -9px; left: 50%; padding: 1px 4px; background: var(--combo); color: #fff; font-size: 10px; white-space: nowrap; transform: translateX(-50%); border-radius: 3px; }
 
 .dashboard-grid {
   display: grid;
@@ -198,14 +220,14 @@ h3 { margin-bottom: 14px; font-size: 12px; font-weight: 500; }
 .gauge-label strong { color: var(--muted); font-size: 10px; font-weight: 400; }
 .gauge-bar { height: 18px; overflow: hidden; border: 1px solid var(--border); border-radius: 4px; background: #f1f3f4; }
 .gauge-bar span { display: block; height: 100%; background: var(--blue); }
-.gauge-bar-dark span { background: var(--text); }
 .stack-block { margin-top: 44px; }
 .stack-block > span { display: block; margin: 14px 0 10px; font-size: 11px; }
 .stack-dots { display: flex; gap: 10px; }
 .stack-dots i { width: 18px; height: 18px; border: 1px solid var(--border-strong); border-radius: 6px; background: #fff; }
-.stack-dots i.is-active { border-color: var(--blue); background: var(--blue); }
-/* レムール(残り)は青、ヴォイド(消費済み)は濃いグレーで塗り分けます。合計は常に5になります。 */
-.stack-dots i.is-void { border-color: var(--text); background: var(--text); }
+.stack-dots i.is-active { border-color: var(--cyan); background: var(--cyan); }
+/* レムール(残り、シュラウドスタック)は水色、ヴォイド(消費済み、ヴォイドソウル)は紫色で
+   塗り分けます。合計は常に5になります。 */
+.stack-dots i.is-void { border-color: var(--purple); background: var(--purple); }
 
 .skill-settings { display: flex; align-items: center; gap: 16px; }
 .gcd-setting { display: flex; align-items: center; gap: 10px; font-size: 10px; }
@@ -220,24 +242,48 @@ h3 { margin-bottom: 14px; font-size: 12px; font-weight: 500; }
    アイコン自体も少し小さめの48pxにしています。 */
 .action-tile.skill-button { width: 48px; height: 48px; }
 .action-tile.skill-button strong { width: 48px; height: 48px; }
-.action-tile strong { position: relative; display: grid; width: 58px; height: 58px; padding: 5px; place-items: center; border: 1px solid transparent; border-radius: 6px; background: #fff; font-size: 10px; font-weight: 500; line-height: 12px; }
-.skill-icon { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 5px; object-fit: cover; transition: filter .12s ease; }
+.action-tile strong { position: relative; display: grid; width: 58px; height: 58px; padding: 5px; place-items: center; border: 2px solid transparent; border-radius: 6px; background: #fff; font-size: 10px; font-weight: 500; line-height: 12px; }
+/* 角丸はborder(2px)の内側にちょうど収まるよう、親.action-tile strongの角丸(6px)から
+   ボーダー幅ぶんを引いた値(4px)にする。ここが親と同じ6pxだと、ボーダーが太くなった際に
+   角の部分だけ画像の角丸がボーダーの内側カーブより外側にはみ出し、隙間ができて見えてしまう。 */
+.skill-icon { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 4px; object-fit: cover; transition: filter .12s ease; }
 .skill-name-fallback { position: relative; }
-/* リキャスト(次に使えるまでの残り秒数)は、アイコン中央へ大きく重ねて表示します。 */
-.recast-time { position: absolute; inset: 0; z-index: 2; display: flex; align-items: center; justify-content: center; border-radius: 5px; color: #fff; font-size: 13px; font-weight: 700; line-height: 1; text-shadow: 0 1px 3px rgba(0,0,0,.85); pointer-events: none; }
+/* 薬(アイコン画像が404でテキストフォールバックになる)や時間操作(待機、そもそも画像を
+   持たない)は、画像がない分アイコンの塗りが素通しになってしまうため、グレーの背景を
+   明示的に付けて認識しやすくする(枠線は他のアイコンと同じく透明のまま)。 */
+.wait-tile strong,
+.action-tile strong:has(.skill-name-fallback) {
+  background: #f1f3f4;
+}
+/* リキャスト(次に使えるまでの残り秒数)は、アイコン中央へ大きく重ねて表示します。
+   要素が<em>のため既定で斜体になるが、視認性のため正体+細い黒フチ(4方向1pxの
+   text-shadowで疑似アウトライン化)にする。 */
+.recast-time { position: absolute; inset: 0; z-index: 2; display: flex; align-items: center; justify-content: center; border-radius: 5px; color: #fff; font-size: 13px; font-weight: 700; font-style: normal; line-height: 1; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; pointer-events: none; }
 .recast-time:empty { display: none; }
 /* チャージ(スタック)残数は、アイコン右下に小さいバッジとして重ねます。 */
 .charge-badge { position: absolute; z-index: 3; right: -4px; bottom: -4px; min-width: 16px; height: 16px; padding: 0 3px; border-radius: 8px; background: #24292e; color: #fff; font-size: 9px; font-weight: 700; line-height: 16px; text-align: center; pointer-events: none; }
 .charge-badge:empty { display: none; }
 .action-tile small { padding-top: 5px; color: var(--muted); font-size: 9px; text-align: left; }
-/* ホバー時に枠線は付けません(見た目のノイズになるため)。淡い背景だけで反応を示します。 */
+/* ホバー時に枠線は付けません(強調表示(is-combo等)の視認性を下げるため)。淡い背景の変化だけ残します。 */
 .action-tile:hover strong { background: #f8fbff; }
-/* 威力アップ/コンボ成立中のアイコンは、枠線ではなく発光するリングで目立たせます。 */
-.action-tile.is-combo strong { box-shadow: 0 0 0 2px var(--combo), 0 0 10px 1px rgba(242,105,34,.7); }
+/* 威力アップ/コンボ成立中のアイコンは、枠線ではなく発光するリングで目立たせます(ぼかしなしの
+   くっきりしたリングのみ)。 */
+.action-tile.is-combo strong { box-shadow: 0 0 0 2px var(--combo); }
 .action-tile.is-replaced strong { box-shadow: inset 0 0 0 1px var(--blue); }
-/* 実行不可(個別リキャスト中・チャージ切れ・ゲージ/条件不足)のアクションは、アイコンを
-   はっきり暗くして一目で分かるようにします。 */
-.action-tile.is-cooling strong { background: #cfd3d8; }
+/* is-comboとis-replacedは同じ詳細度(2クラス)のbox-shadowを持つため、両方付いた場合(エクス系
+   アクション等、強調表示の対象が枠替え後のスキルになるケース)は後勝ちで発光リングが消えて
+   しまう。両方重ねて表示する専用ルールで上書きする。 */
+.action-tile.is-combo.is-replaced strong {
+  box-shadow: inset 0 0 0 1px var(--blue), 0 0 0 2px var(--combo);
+}
+/* 暗転(is-cooling)している間は、is-replacedの青い枠は表示しません(実行不可な状態で枠だけ
+   残るのが不自然なため)。is-comboの発光リングは「ソウルゲージ50以上ならリキャスト中でも
+   強調」等、暗転中でも意味を持つ仕様のため維持する(2ルールとも3クラスで詳細度が同じなので、
+   両方付いた場合は後勝ちでis-comboのリングだけが残る)。 */
+.action-tile.is-cooling.is-replaced strong { box-shadow: none; }
+.action-tile.is-cooling.is-combo strong { box-shadow: 0 0 0 2px var(--combo); }
+/* 実行不可(個別リキャスト中・チャージ切れ・ゲージ/条件不足)のアクションは、アイコン画像自体
+   を暗くして一目で分かるようにします(枠と同様、背景色での縁取りは付けません)。 */
 .action-tile.is-cooling .skill-icon { filter: brightness(.42) saturate(.7); }
 .action-tile.is-cooling:hover .skill-icon { filter: brightness(.55) saturate(.8); }
 .action-tile.is-previewing { opacity: .8; }
@@ -248,11 +294,14 @@ h3 { margin-bottom: 14px; font-size: 12px; font-weight: 500; }
 .skill-tooltip {
   position: fixed;
   z-index: 30;
-  width: 220px;
+  width: 320px;
   padding: 10px 12px;
   border: 1px solid #3c4043;
   border-radius: 6px;
-  background: #24292e;
+  /* 半透明にしつつ、文字色(#e8eaed等の明るい色)とのコントラストが崩れない範囲(90%不透明)に
+     留める。裏の内容が薄く透けて見える程度。 */
+  background: rgba(36, 41, 46, .9);
+  backdrop-filter: blur(2px);
   color: #e8eaed;
   font-size: 11px;
   line-height: 1.6;
@@ -261,12 +310,10 @@ h3 { margin-bottom: 14px; font-size: 12px; font-weight: 500; }
 }
 .skill-tooltip[hidden] { display: none; }
 .skill-tooltip-title { margin-bottom: 4px; font-size: 12px; font-weight: 600; color: #fff; }
-.skill-tooltip-status { margin-bottom: 6px; font-weight: 500; }
-.skill-tooltip-status.is-ready { color: #81c995; }
-.skill-tooltip-status.is-blocked { color: #f6a97a; }
 .skill-tooltip-line { color: #bdc1c6; }
-.skill-tooltip-requirement { color: #f6a97a; }
-.skill-tooltip-effect { color: #8ab4f8; }
+/* 効果欄は公式ジョブガイドの原文をそのまま(改行位置込みで)表示するため、\nを実際の改行として
+   描画する(pre-line。連続する半角スペースは詰められるが、原文の全角スペースはそのまま残る)。 */
+.skill-tooltip-effect { display: block; margin-top: 6px; color: #8ab4f8; white-space: pre-line; }
 
 .status-panel .panel-body { min-height: 410px; }
 .status-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 8px; }

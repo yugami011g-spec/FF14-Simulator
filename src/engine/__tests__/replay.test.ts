@@ -51,6 +51,33 @@ describe("combo chain potency", () => {
   });
 });
 
+describe("ソウルソウ: 戦闘開始前は無詠唱、開始後は詠唱時間が発生する", () => {
+  it("シミュレーション開始時点ですでにソウルソウのバフを得ている", () => {
+    const snapshot = initialSnapshot(settings, job);
+    expect(snapshot.buffs.soulSow).toBeDefined();
+    expect(snapshot.buffs.soulSow.expiresAt).toBeGreaterThan(snapshot.elapsedTime);
+  });
+
+  it("戦闘開始前(elapsedTime<0)に使うと無詠唱で即着弾する", () => {
+    const leadInSettings: SimSettings = { ...settings, leadInDuration: 5 };
+    const entries = withSkills("soulSow");
+    const result = replay(entries, leadInSettings, job);
+    expect(result.history[0]).toMatchObject({ skillId: "soulSow", castStartAt: -5, usedAt: -5 });
+  });
+
+  it("戦闘開始後(elapsedTime>=0)に使うと5秒の詠唱が発生する", () => {
+    const entries = withSkills("soulSow");
+    const result = replay(entries, settings, job);
+    const entry = result.history[0];
+    expect(entry).toMatchObject({ skillId: "soulSow" });
+    if (entry.kind !== "skill") throw new Error("expected a skill entry");
+    // castStartAtは-0(roundTime(-leadInDuration)由来の既知の浮動小数点上の挙動、数値的には0と同一)に
+    // なり得るため、Object.is比較のtoBeではなくtoBeCloseToで検証する。
+    expect(entry.castStartAt).toBeCloseTo(0);
+    expect(entry.usedAt).toBe(5);
+  });
+});
+
 describe("enshroud lifecycle (direct unit test of applyJobEffects, avoids fragile hand-built rotations)", () => {
   it("enterEnshroud grants 5 lemure stacks + a 30s window and costs 50 shroud gauge", () => {
     const base = initialSnapshot(settings, job);
@@ -103,10 +130,12 @@ describe("full-rotation replay via editOps (reflow semantics: auto-waits through
       ...withSkills("soulSlice", "stalkSwathe", "gibbet", "soulSlice", "stalkSwathe", "gallows"),
     ];
     const result = replay(entries, settings, job);
-    // 検証済み(scripts/probe.ts): totalPotency=5620, gauges={soul:0, shroud:40}, 12件全て成功(historyLen=12)
+    // 検証済み(scripts/probe.ts): totalPotency=5620, gauges={soul:0, shroud:40}, 12件全て成功(historyLen=12)。
+    // ただしジビトゥ/ギャロウズ(計4回)は方向指定を常に成功しているものとして計算する仕様のため
+    // +240(=60×4)高い5860になる。
     expect(result.droppedNames).toEqual([]);
     expect(result.history).toHaveLength(12);
-    expect(result.final.totalPotency).toBe(5620);
+    expect(result.final.totalPotency).toBe(5860);
     expect(result.final.gauges.soul).toBe(0);
     expect(result.final.gauges.shroud).toBe(40);
   });

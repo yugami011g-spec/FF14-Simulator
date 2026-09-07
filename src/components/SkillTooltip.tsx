@@ -1,22 +1,19 @@
-import { useLayoutEffect, useRef, useState } from "react";
-import type { TooltipRequest } from "../hooks/useTooltipController";
+import type { SkillTooltipData } from "../engine/tooltipText";
+import { useTooltipPosition } from "../hooks/useTooltipPosition";
+
+// 呼び出し側(App.tsx)が、ホバー中のアクション枠の最新状態から毎レンダー組み立て直す
+// 描画専用のデータです。値そのものを状態として保持し続けるものではありません。
+export interface TooltipRequest {
+  anchorRect: DOMRect;
+  data: SkillTooltipData;
+}
 
 interface SkillTooltipProps {
   request: TooltipRequest | null;
 }
 
 export function SkillTooltip({ request }: SkillTooltipProps) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState({ left: 0, top: 0 });
-
-  useLayoutEffect(() => {
-    if (!request || !ref.current) return;
-    const tooltipRect = ref.current.getBoundingClientRect();
-    const showAbove = request.anchorRect.top > tooltipRect.height + 16;
-    const left = Math.max(4, Math.min(request.anchorRect.left, window.innerWidth - tooltipRect.width - 8));
-    const top = showAbove ? request.anchorRect.top - tooltipRect.height - 8 : request.anchorRect.bottom + 8;
-    setPosition({ left, top });
-  }, [request]);
+  const { ref, position } = useTooltipPosition(request?.anchorRect);
 
   if (!request) {
     return <div className="skill-tooltip" hidden />;
@@ -26,20 +23,10 @@ export function SkillTooltip({ request }: SkillTooltipProps) {
   return (
     <div ref={ref} className="skill-tooltip" style={{ left: position.left, top: position.top }}>
       <div className="skill-tooltip-title">{data.title}</div>
-      <div className={`skill-tooltip-status ${data.isReady ? "is-ready" : "is-blocked"}`}>{data.statusLine}</div>
-      {data.timingLine && <div className="skill-tooltip-line">{data.timingLine}</div>}
-      <div className="skill-tooltip-line">{data.potencyLine}</div>
-      {data.gaugeLine && <div className="skill-tooltip-line">{data.gaugeLine}</div>}
-      {data.requirementLines.map((line, index) => (
-        <div className="skill-tooltip-line skill-tooltip-requirement" key={index}>
-          {line}
-        </div>
-      ))}
-      {data.effectLines.map((line, index) => (
-        <div className="skill-tooltip-line skill-tooltip-effect" key={index}>
-          {line}
-        </div>
-      ))}
+      <div className="skill-tooltip-line">{data.typeLabel}</div>
+      <div className="skill-tooltip-line">{data.castTimeLine}</div>
+      <div className="skill-tooltip-line">{data.recastTimeLine}</div>
+      {data.effectText && <div className="skill-tooltip-line skill-tooltip-effect">{data.effectText}</div>}
     </div>
   );
 }

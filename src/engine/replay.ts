@@ -25,7 +25,7 @@ export function initialSnapshot(settings: SimSettings, job: JobDefinition<any>):
     actionReadyAt: startTime,
     cooldowns: {},
     chargeReadyTimes: {},
-    buffs: {},
+    buffs: { ...job.initialBuffs },
     debuffs: {},
   };
 }
@@ -79,9 +79,16 @@ function stepSkill(
     return { snapshot, elapsedTime, effectHistory: effectHistoryIn, entry: null, failed: true };
   }
 
-  const castTimeEnhancement = skill.castTimeEnhancedBy ? snapshot.buffs[skill.castTimeEnhancedBy] : undefined;
-  const hasCastTimeEnhancement = isEffectActive(castTimeEnhancement, elapsedTime);
-  const castTime = hasCastTimeEnhancement ? 0 : skill.castTime || 0;
+  const castTimeEnhancedByIds = skill.castTimeEnhancedBy
+    ? Array.isArray(skill.castTimeEnhancedBy)
+      ? skill.castTimeEnhancedBy
+      : [skill.castTimeEnhancedBy]
+    : [];
+  const hasCastTimeEnhancement = castTimeEnhancedByIds.some((id) => isEffectActive(snapshot.buffs[id], elapsedTime));
+  // 戦闘開始前(elapsedTime<0)は、noCastTimeBeforeCombatを持つスキルの詠唱時間を無視する
+  // (ソウルソウ等、開幕前は無詠唱で仕込めるが戦闘中に使うと詠唱が発生する仕様)。
+  const isBeforeCombatWaived = Boolean(skill.noCastTimeBeforeCombat) && elapsedTime < 0;
+  const castTime = hasCastTimeEnhancement || isBeforeCombatWaived ? 0 : skill.castTime || 0;
 
   let castStartAt: number;
   if (preserveLanding) {

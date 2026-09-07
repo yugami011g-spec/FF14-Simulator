@@ -3,9 +3,6 @@ import type { JobDefinition } from "../types/job";
 import type { SimSnapshot } from "../types/state";
 import { isEffectActive } from "./effects";
 
-// コンボの1段目として扱う comboStep の値です（通常コンボ:1、範囲コンボ:11）。
-const COMBO_STARTER_STEPS = new Set([1, 11]);
-
 // 指定されたスキルが現在のコンボ状態に合っているか判定します。
 export function isComboSuccess(skill: Skill<any>, snapshot: SimSnapshot, elapsedTime: number): boolean {
   if (skill.requiredComboStep === null || skill.requiredComboStep === undefined) {
@@ -17,14 +14,14 @@ export function isComboSuccess(skill: Skill<any>, snapshot: SimSnapshot, elapsed
 
 // スキルがいずれかのコンボ（開始または継続）に属しているかを判定します。
 // アビリティや、ジビトゥ／ギャロウズのようなコンボと無関係なウェポンスキルは属しません。
+// comboStepを持つ(0より大きい)スキルはすべて何らかのコンボレーンの開始または継続であり、
+// requiredComboStepの有無で開始(前提条件なし)と継続(前提条件あり)を区別します。この判定は
+// ジョブごとのコンボレーン数(通常コンボ/範囲コンボ/バーストコンボ等)に依存しません。
 export function isComboRelevant(skill: Skill<any>): boolean {
   if (skill.type === "ability") {
     return false;
   }
-  if (COMBO_STARTER_STEPS.has(skill.comboStep)) {
-    return true;
-  }
-  return skill.requiredComboStep !== null && skill.requiredComboStep !== undefined;
+  return skill.comboStep > 0;
 }
 
 // スキル使用後のコンボ段階を決めます。
@@ -32,11 +29,12 @@ export function getNextComboStep(skill: Skill<any>, snapshot: SimSnapshot, elaps
   if (!isComboRelevant(skill)) {
     return snapshot.comboStep;
   }
-  // コンボの1段目はいつ押しても、そのコンボの開始として扱います。
-  if (COMBO_STARTER_STEPS.has(skill.comboStep)) {
+  // 前提条件(requiredComboStep)を持たない段階は、そのコンボレーンの開始としていつ押しても
+  // 開始として扱います。
+  if (skill.requiredComboStep === null || skill.requiredComboStep === undefined) {
     return skill.comboStep;
   }
-  // 2段目以降は、コンボ成功時だけ次の段階へ進みます。
+  // 前提条件を持つ段階は、コンボ成功時だけ次の段階へ進みます。
   if (isComboSuccess(skill, snapshot, elapsedTime)) {
     return skill.comboStep;
   }

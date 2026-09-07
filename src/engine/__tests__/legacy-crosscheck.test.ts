@@ -3,6 +3,7 @@ import { reaperJobDefinition } from "../../data/reaper/jobDefinition";
 import { appendSkillEntry } from "../editOps";
 import { getLiveAppendRejectionReason } from "../gating";
 import { replay } from "../replay";
+import { counterValue } from "../jobs/reaper/reaperState";
 import type { SimSettings } from "../../types/state";
 import type { ReplayEntry } from "../../types/history";
 
@@ -41,12 +42,54 @@ describe("cross-check against legacy js/engine.js live useSkill output (scripts/
     const { entries, rejected } = simulateLiveClicks(rotation);
     const result = replay(entries, settings, job);
 
-    // legacy output (node scripts/cross-check-legacy.cjs '[...]'):
-    // totalPotency=2780, soulGauge=0, shroudGauge=20, historyCount=6, results[6..11].ok=false
-    expect(result.final.totalPotency).toBe(2780);
+    // legacy output (node scripts/cross-check-legacy.cjs '[...]'): totalPotency=2780。
+    // ただし新エンジンはジビトゥ/ギャロウズについて、方向指定(側面/背面攻撃)を常に成功している
+    // ものとして計算する仕様(ユーザー指定の方針、legacy版にはない)を持つため、この2手ぶん
+    // 実際にはlegacyより高い値になる(2780+120=2900)。gaugeやhistoryCount等はlegacyと完全一致。
+    expect(result.final.totalPotency).toBe(2900);
     expect(result.final.gauges.soul).toBe(0);
     expect(result.final.gauges.shroud).toBe(20);
     expect(result.history).toHaveLength(6);
     expect(rejected).toEqual([false, false, false, false, false, false, true, true, true, true, true, true]);
+  });
+
+  it("matches legacy totalPotency/gauges/stacks for a realistic 32-step opener-to-enshroud rotation", () => {
+    // 開幕儀式(アルケインサークル+シャドウ・オブ・デス)→3連コンボ→ソウルスライスでソウルゲージ100まで
+    // 積んでグラトニー+ブラッドストーク(旧ストークスウェーズ)を両方消費→エグゼキューショナー
+    // ジビトゥ/ギャロウズとソウルリーヴァージビトゥ/ギャロウズを計4回使ってシュラウドゲージ50まで
+    // 貯め→レムールシュラウド突入→ヴォイド/クロスリーピング交互2周+レムールスライス2回→コムニオで
+    // 離脱、という実戦的な開幕〜エンシュラウド1周分の流れ。全32手が有効(拒否なし)であることも含めて
+    // legacy版(node scripts/cross-check-legacy.cjs)の出力と突き合わせる。
+    const rotation = [
+      "arcaneCircle", "shadowOfDeath", "slice", "waxingSlice", "infernalSlice",
+      "soulSlice", "gluttony", "executionersGibbet", "executionersGallows",
+      "soulSlice", "stalkSwathe", "gibbet",
+      "slice", "waxingSlice", "infernalSlice",
+      "stalkSwathe", "gallows",
+      "slice", "waxingSlice", "infernalSlice", "slice",
+      "soulSlice", "stalkSwathe", "gibbet",
+      "enshroud", "voidReaping", "crossReaping", "lemureSlice",
+      "voidReaping", "crossReaping", "lemureSlice", "communio",
+    ];
+    const { entries, rejected } = simulateLiveClicks(rotation);
+    const result = replay(entries, settings, job);
+
+    // legacy output (node scripts/cross-check-legacy.cjs '[...]'): totalPotency=16625。
+    // ただし新エンジンはジビトゥ/ギャロウズ/エクス系について、方向指定(側面/背面攻撃)を常に
+    // 成功しているものとして計算する仕様(ユーザー指定の方針、legacy版にはない)を持つため、
+    // この5手(gibbet×2/gallows×1/executionersGibbet×1/executionersGallows×1)ぶん、
+    // アルケインサークル/デスデザインの倍率補正込みでlegacyより322高い値になる(16947)。
+    // soulGauge等の他の値はlegacyと完全一致。
+    // soulGauge=50, shroudGauge=0, soulReaverStacks=0, executionerStacks=0,
+    // lemureStacks=0, voidStacks=0, enshroudedUntil=0, comboStep=1, historyCount=32, all results[].ok=true
+    expect(result.final.totalPotency).toBe(16947);
+    expect(result.final.gauges.soul).toBe(50);
+    expect(result.final.gauges.shroud).toBe(0);
+    expect(counterValue(result.final, "soulReaver")).toBe(0);
+    expect(counterValue(result.final, "executioner")).toBe(0);
+    expect(counterValue(result.final, "lemure")).toBe(0);
+    expect(counterValue(result.final, "void")).toBe(0);
+    expect(result.history).toHaveLength(32);
+    expect(rejected).toEqual(new Array(32).fill(false));
   });
 });

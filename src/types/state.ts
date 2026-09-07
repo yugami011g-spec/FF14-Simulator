@@ -39,3 +39,10 @@ export interface SimSettings {
   combatDuration: number;
   gcdSetting: number;
 }
+
+// StatusPanelのバフ/デバフ欄に出す1行分の表示データ。jobState由来の派生ステータス
+// (job.getDisplayStatuses)と、snapshot.buffs/debuffsの生データの両方をこの形へ揃える。
+export interface DisplayStatus {
+  name: string;
+  expiresAt: number;
+}
