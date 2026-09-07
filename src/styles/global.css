@@ -236,6 +236,7 @@ h3 { margin-bottom: 14px; font-size: 12px; font-weight: 500; }
 .lead-in-setting input { width: 56px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; text-align: center; font: inherit; }
 .skill-category + .skill-category { margin-top: 14px; }
 .action-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.action-grid + .action-grid { margin-top: 8px; }
 .action-tile { position: relative; display: flex; width: 58px; height: 78px; padding: 0; flex-direction: column; align-items: stretch; border: 0; color: var(--text); background: transparent; cursor: pointer; }
 /* スキルボタンはアイコンのみで完結する(種別文字・チャージ分数の下段表示を廃止した)ため、
    下段の<small>ぶんの高さを持たない待機ボタン等と違い、アイコン分の高さだけにします。

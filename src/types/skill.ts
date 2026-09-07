@@ -25,6 +25,10 @@ export interface Skill<TJobEffects = Record<string, unknown>> {
   name: string;
   shortName: string;
   category?: "role";
+  // 同じカテゴリ(ウェポンスキル/魔法・アビリティ)内で行を分けたい場合の行番号(0始まり、
+  // 未指定は0扱い)。例: 単体主体のコンボは0行目、範囲技だけをまとめて1行目、防御バフだけを
+  // まとめて1行目、のように使う。SkillPanel.tsxがこの値でグリッドを分けて描画する。
+  row?: number;
   type: SkillType;
   potency: number;
   comboPotency?: number | null;

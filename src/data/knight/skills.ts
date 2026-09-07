@@ -73,12 +73,14 @@ export const skills: Record<string, KnightSkill> = {
   }),
   totalEclipse: createAction("totalEclipse", "トータルエクリプス", "トータル", "weaponskill", 120, {
     comboStep: 11,
+    row: 1,
     officialEffect: "自身の周囲の敵に範囲物理攻撃。　威力：120\n追加効果：敵視アップ",
   }),
   prominence: createAction("prominence", "プロミネンス", "プロミネンス", "weaponskill", 100, {
     comboPotency: 220,
     requiredComboStep: 11,
     comboStep: 12,
+    row: 1,
     jobEffects: { grantOnComboSuccess: ["holyPower"] },
     officialEffect:
       "自身の周囲の敵に範囲物理攻撃。　威力：100\nコンボ条件：トータルエクリプス　コンボ時威力：220\n追加効果：敵視アップ\nコンボボーナス：自身のＭＰを回復する。\nコンボボーナス：自身に「神聖魔法効果アップ」を付与する。\n効果時間：30秒\n神聖魔法効果アップ効果：次に実行する1回のホーリースピリットまたはホーリーサークルの威力が上昇し、かつ詠唱時間無しで実行できる。",
@@ -130,6 +132,7 @@ export const skills: Record<string, KnightSkill> = {
     dynamicPotency: "holyCircle",
     castTime: 1.5,
     castTimeEnhancedBy: ["holyPower", "requiescat"],
+    row: 1,
     jobEffects: { consumeBuffs: ["holyPower"], consumeRequiescatStack: true },
     officialEffect:
       "自身の周囲の敵に無属性範囲魔法攻撃。　威力：100\n神聖魔法効果アップ時威力：250\nレクイエスカット時威力：350\n神聖魔法効果アップとレクイエスカットの両方が付与されている場合は、神聖魔法効果アップの効果が優先的に適用される。\n追加効果：自身のＨＰを回復する。　回復力：400",
@@ -206,5 +209,106 @@ export const skills: Record<string, KnightSkill> = {
     cooldownGroup: "expiacion",
     officialEffect:
       "対象とその周囲の敵に範囲物理攻撃。　威力：450\n2体目以降の対象への威力は60％減少する。\n追加効果：自身のＭＰを回復する。",
+  }),
+
+  // --- 防御バフ(アビリティ2行目) ---
+  // 被ダメージ・回復量はこのシミュレーターの追跡対象外(威力=0)。TLの効果時間帯には
+  // showOnTimeline:trueで表示されるようにする。オウスゲージを要求するホーリーシェルトロン/
+  // インターベンション/かばうは、ゲージの増加ロジックが未実装のため今回も対象外
+  // (engineering/docs/multi-job-ui-design.mdの実装ログ参照)。
+  extremeGuard: createAction("extremeGuard", "エクストリームガード", "ガード", "ability", 0, {
+    gcd: false,
+    recast: 120,
+    cooldownGroup: "extremeGuard",
+    row: 1,
+    noTarget: true,
+    effects: [{ type: "buff", id: "extremeGuard", name: "エクストリームガード", duration: 15, showOnTimeline: true }],
+    officialEffect:
+      "一定時間、自身の被ダメージを40％軽減させる。\n効果時間：15秒\n追加効果：自身に一定量のダメージを防ぐバリアを張る。\nバリア量：回復力1000相当　効果時間：15秒",
+  }),
+  bulwark: createAction("bulwark", "ブルワーク", "ブルワーク", "ability", 0, {
+    gcd: false,
+    recast: 90,
+    cooldownGroup: "bulwark",
+    row: 1,
+    noTarget: true,
+    effects: [{ type: "buff", id: "bulwark", name: "ブルワーク", duration: 10, showOnTimeline: true }],
+    officialEffect: "一定時間、受ける攻撃を必ずブロックする。　効果時間：10秒",
+  }),
+  hallowedGround: createAction("hallowedGround", "インビンシブル", "インビン", "ability", 0, {
+    gcd: false,
+    recast: 420,
+    cooldownGroup: "hallowedGround",
+    row: 1,
+    noTarget: true,
+    effects: [{ type: "buff", id: "hallowedGround", name: "インビンシブル", duration: 10, showOnTimeline: true }],
+    officialEffect: "一定時間、自身への一部を除くすべてのダメージを無効化する。　効果時間：10秒",
+  }),
+  divineVeil: createAction("divineVeil", "ディヴァインヴェール", "ヴェール", "ability", 0, {
+    gcd: false,
+    recast: 90,
+    cooldownGroup: "divineVeil",
+    row: 1,
+    noTarget: true,
+    effects: [{ type: "buff", id: "divineVeil", name: "ディヴァインヴェール", duration: 30, showOnTimeline: true }],
+    officialEffect:
+      "自身と周囲のパーティメンバーに、一定量のダメージを防ぐバリアを張る。\nこのバリアはナイト自身の最大ＨＰの10％分のダメージを軽減する。　効果時間：30秒\n追加効果：対象のＨＰを回復する。　回復力：400",
+  }),
+
+  // --- ロールアクション(タンク共通)・薬 ---
+  rampart: createAction("rampart", "ランパート", "ランパート", "ability", 0, {
+    category: "role",
+    recast: 90,
+    noTarget: true,
+    effects: [{ type: "buff", id: "rampart", name: "ランパート", duration: 20, showOnTimeline: true }],
+    officialEffect: "一定時間、自身の被ダメージを20％軽減させる。\nさらに、自身が受けるＨＰ回復効果を15％上昇させる。　効果時間：20秒",
+  }),
+  provoke: createAction("provoke", "挑発", "挑発", "ability", 0, {
+    category: "role",
+    recast: 30,
+    officialEffect: "対象を挑発し、自身への敵視を最高位にしたうえで、さらに自身への敵視を上昇させる。",
+  }),
+  reprisal: createAction("reprisal", "リプライザル", "リプライザル", "ability", 0, {
+    category: "role",
+    recast: 60,
+    noTarget: true,
+    effects: [{ type: "debuff", id: "reprisal", name: "リプライザル", duration: 15, showOnTimeline: true }],
+    officialEffect: "自身の周囲の敵の与ダメージを10％減少させる。　効果時間：15秒",
+  }),
+  shirk: createAction("shirk", "シャーク", "シャーク", "ability", 0, {
+    category: "role",
+    recast: 120,
+    officialEffect: "自身に向けられている敵視の25％を対象のパーティメンバーに移す。",
+  }),
+  interject: createAction("interject", "インタージェクト", "インタージェクト", "ability", 0, {
+    category: "role",
+    recast: 30,
+    officialEffect: "対象のアクション詠唱を中断させる。",
+  }),
+  lowBlow: createAction("lowBlow", "ロウブロウ", "ロウブロウ", "ability", 0, {
+    category: "role",
+    recast: 25,
+    officialEffect: "対象をスタンさせる。　効果時間：5秒",
+    effects: [{ type: "debuff", id: "stun", name: "スタン", duration: 5 }],
+  }),
+  armsLength: createAction("armsLength", "アームズレングス", "アームズ", "ability", 0, {
+    category: "role",
+    recast: 120,
+    noTarget: true,
+    officialEffect:
+      "一定時間、一部を除くすべてのノックバックと引き寄せを無効化する。　効果時間：6秒\n追加効果：効果中に自身が物理攻撃を受けると、攻撃者に20％スロウを付与する。　効果時間：15秒",
+    effects: [{ type: "buff", id: "armsLength", name: "アームズレングス", duration: 6, showOnTimeline: true }],
+  }),
+  tincture: createAction("tincture", "薬", "薬", "ability", 0, {
+    // 効果: 30秒間メインステータス+10%(公式ロードストーン記事の記述に基づく)。
+    // 威力計算では簡略化し、既存のデスデザイン/アルケインサークルと同様に威力への乗算バフとして扱います。
+    // リキャストタイムは現行パッチの一般的な値(270秒=4分30秒)を採用していますが未検証です。
+    // 「薬」はジョブガイドに掲載されているアクションではないため、officialEffectはロードストーン
+    // 記事に基づく記述であり公式ジョブガイドからの引用ではない(他スキルと出典が異なる)。
+    category: "role",
+    recast: 270,
+    noTarget: true,
+    officialEffect: "自身のメインステータスが一定時間上昇する(具体的な数値・時間は未検証)",
+    effects: [{ type: "buff", id: "tincture", name: "薬", duration: 30, potencyMultiplier: 1.1, showOnTimeline: true }],
   }),
 };
