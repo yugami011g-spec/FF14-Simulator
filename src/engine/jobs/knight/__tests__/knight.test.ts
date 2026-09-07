@@ -52,6 +52,12 @@ describe("goring blade", () => {
     // ファイト・オア・フライトの与ダメージ25%アップも乗る(700 * 1.25 = 875)。
     expect(result.history[1]).toMatchObject({ skillId: "goringBlade", potency: 875 });
   });
+
+  it("consumes goringBladeReady so it can't be spammed within the same window", () => {
+    const result = replay(withSkills("fightOrFlight", "goringBlade", "goringBlade"), settings, job);
+    expect(result.droppedNames).toEqual(["ゴアブレード"]);
+    expect(result.final.buffs.goringBladeReady).toBeUndefined();
+  });
 });
 
 describe("atonement combo slot morphing", () => {
@@ -124,6 +130,17 @@ describe("holy magic dynamic potency", () => {
     // castTime==0ならusedAtとGCD開始が一致するはず(詠唱による着弾遅延が発生しない)。
     expect(withBuff.history[1]).toMatchObject({ castStartAt: withBuff.history[1].usedAt });
   });
+
+  it("consumes holyPower after one cast (next cast falls back to base/requiescat tier)", () => {
+    const result = replay(
+      withSkills("fastBlade", "riotBlade", "royalAuthority", "holySpirit", "holySpirit"),
+      settings,
+      job,
+    );
+    expect(result.history[3]).toMatchObject({ skillId: "holySpirit", potency: 500 });
+    expect(result.history[4]).toMatchObject({ skillId: "holySpirit", potency: 400 });
+    expect(result.final.buffs.holyPower).toBeUndefined();
+  });
 });
 
 describe("confiteor burst combo", () => {
@@ -158,5 +175,31 @@ describe("confiteor burst combo", () => {
       job,
     ).final;
     expect(getActiveSkillByBaseId(job, "imperator", afterBladeOfValor, afterBladeOfValor.elapsedTime).id).toBe("bladeOfHonor");
+  });
+
+  it("consumes confiteorReady so the chain can't be re-triggered within the same requiescat window", () => {
+    // ブレード・オブ・ヴァラー使用後はcomboStepが24に進み、confiteor枠はbladeOfFaith/Truth/Valorの
+    // どの条件にも合致しなくなるため、再びベースの「コンフィテオル」に戻る。この状態で
+    // confiteorReadyが消費されていないと、まだ30秒以内なら再度コンフィテオルが発動してしまう。
+    const result = replay(
+      withSkills("imperator", "confiteor", "bladeOfFaith", "bladeOfTruth", "bladeOfValor", "confiteor"),
+      settings,
+      job,
+    );
+    expect(result.droppedNames).toEqual(["コンフィテオル"]);
+  });
+
+  it("consumes bladeOfHonorReady so it can't be spammed within the same window", () => {
+    const result = replay(
+      withSkills("imperator", "confiteor", "bladeOfFaith", "bladeOfTruth", "bladeOfValor", "bladeOfHonor", "bladeOfHonor"),
+      settings,
+      job,
+    );
+    expect(result.droppedNames).toEqual(["ブレード・オブ・オナー"]);
+  });
+
+  it("is registered as an ability, not a weaponskill (does not use the GCD)", () => {
+    expect(job.skills.bladeOfHonor.type).toBe("ability");
+    expect(job.skills.bladeOfHonor.gcd).toBe(false);
   });
 });

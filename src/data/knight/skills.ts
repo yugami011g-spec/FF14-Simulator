@@ -68,6 +68,7 @@ export const skills: Record<string, KnightSkill> = {
   }),
   goringBlade: createAction("goringBlade", "ゴアブレード", "ゴア", "weaponskill", 700, {
     requirements: { flags: { goringBladeReady: true } },
+    jobEffects: { consumeBuffs: ["goringBladeReady"] },
     officialEffect: "対象に物理攻撃。　威力：700\n発動条件：「ゴアブレード実行可」効果中",
   }),
   totalEclipse: createAction("totalEclipse", "トータルエクリプス", "トータル", "weaponskill", 120, {
@@ -118,6 +119,10 @@ export const skills: Record<string, KnightSkill> = {
     dynamicPotency: "holySpirit",
     castTime: 1.5,
     castTimeEnhancedBy: ["holyPower", "requiescat"],
+    // 神聖魔法効果アップは「次に実行する1回」限定の効果(officialEffect参照)なので、使用したら
+    // 消費する(レクイエスカットは4スタック性のため今回は消費対象に含めていない。詳細は
+    // engineering/docs/multi-job-ui-design.mdの実装ログ参照)。
+    jobEffects: { consumeBuffs: ["holyPower"] },
     officialEffect:
       "対象に無属性魔法攻撃。　威力：400\n神聖魔法効果アップ時威力：500\nレクイエスカット時威力：700\n神聖魔法効果アップとレクイエスカットの両方が付与されている場合は、神聖魔法効果アップの効果が優先的に適用される。\n追加効果：自身のＨＰを回復する。　回復力：400",
   }),
@@ -125,6 +130,7 @@ export const skills: Record<string, KnightSkill> = {
     dynamicPotency: "holyCircle",
     castTime: 1.5,
     castTimeEnhancedBy: ["holyPower", "requiescat"],
+    jobEffects: { consumeBuffs: ["holyPower"] },
     officialEffect:
       "自身の周囲の敵に無属性範囲魔法攻撃。　威力：100\n神聖魔法効果アップ時威力：250\nレクイエスカット時威力：350\n神聖魔法効果アップとレクイエスカットの両方が付与されている場合は、神聖魔法効果アップの効果が優先的に適用される。\n追加効果：自身のＨＰを回復する。　回復力：400",
   }),
@@ -143,6 +149,7 @@ export const skills: Record<string, KnightSkill> = {
     buffEnhancedBy: "requiescat",
     buffEnhancedPotency: 1000,
     requirements: { flags: { confiteorReady: true } },
+    jobEffects: { consumeBuffs: ["confiteorReady"] },
     comboStep: 21,
     officialEffect:
       "対象とその周囲の敵に無属性範囲魔法攻撃。　威力：500\nレクイエスカット時威力：1000\n2体目以降の対象への威力は60％減少する。\n追加効果：自身のＨＰを回復する。　回復力：400\n発動条件：「コンフィテオル実行可」効果中",
@@ -172,11 +179,12 @@ export const skills: Record<string, KnightSkill> = {
     officialEffect:
       "対象とその周囲の敵に無属性範囲魔法攻撃。　威力：500\nレクイエスカット時威力：1000\n2体目以降の対象への威力は60％減少する。\nコンボ条件：ブレード・オブ・トゥルース\n追加効果：自身のＨＰを回復する。　回復力：400\n追加効果：自身に「ブレード・オブ・オナー実行可」を付与する。\n効果時間：30秒\n\n※このアクションはホットバーに登録することはできない。\n　発動条件を満たすとブレード・オブ・トゥルースがブレード・オブ・ヴァラーに変化する。",
   }),
-  bladeOfHonor: createAction("bladeOfHonor", "ブレード・オブ・オナー", "オナー", "weaponskill", 1000, {
+  bladeOfHonor: createAction("bladeOfHonor", "ブレード・オブ・オナー", "オナー", "ability", 1000, {
     gcd: false,
     recast: 1,
     cooldownGroup: "bladeOfHonor",
     requirements: { flags: { bladeOfHonorReady: true } },
+    jobEffects: { consumeBuffs: ["bladeOfHonorReady"] },
     officialEffect:
       "対象とその周囲の敵に無属性範囲魔法攻撃。　威力：1000\n2体目以降の対象への威力は60％減少する。\n発動条件：「ブレード・オブ・オナー実行可」効果中\n\n※このアクションはホットバーに登録することはできない。\n　発動条件を満たすとインペラトルがブレード・オブ・オナーに変化する。",
   }),
