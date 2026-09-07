@@ -1,9 +1,12 @@
 import type { JobDefinition, StackDef } from "../types/job";
-import type { SimSnapshot } from "../types/state";
+import type { SimSettings, SimSnapshot } from "../types/state";
 
 interface GaugePanelProps {
   job: JobDefinition<any>;
   snapshot: SimSnapshot;
+  elapsedTime: number;
+  settings: SimSettings;
+  onSettingsChange: (patch: Partial<SimSettings>) => void;
 }
 
 const DEFAULT_GAUGE_COLOR = "var(--blue)";
@@ -27,9 +30,9 @@ function StackDots({ stackDef, snapshot }: { stackDef: StackDef; snapshot: SimSn
   );
 }
 
-export function GaugePanel({ job, snapshot }: GaugePanelProps) {
+export function GaugePanel({ job, snapshot, elapsedTime, settings, onSettingsChange }: GaugePanelProps) {
   const gaugeExtras = job.renderCustomGaugeExtras
-    ? job.renderCustomGaugeExtras(snapshot)
+    ? job.renderCustomGaugeExtras(snapshot, elapsedTime, settings, onSettingsChange)
     : job.stackDefs.length > 0 && (
         <div className="stack-block">
           <h3>スタック</h3>
@@ -46,7 +49,9 @@ export function GaugePanel({ job, snapshot }: GaugePanelProps) {
       </header>
       <div className="panel-body">
         {job.gaugeDefs.map((gaugeDef) => {
-          const value = snapshot.gauges[gaugeDef.key] ?? 0;
+          const value = job.computeGaugeValue
+            ? job.computeGaugeValue(gaugeDef.key, snapshot, elapsedTime, settings)
+            : (snapshot.gauges[gaugeDef.key] ?? 0);
           return (
             <div className="gauge-block" key={gaugeDef.key}>
               <div className="gauge-label">

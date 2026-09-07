@@ -63,7 +63,7 @@ export function SkillButton({
 
   const isComboAction = isComboSuccess(skill, snapshot, elapsedTime);
   const isReadyJobAction = job.isRecommended
-    ? job.isRecommended(skill, snapshot, elapsedTime, resourceReason)
+    ? job.isRecommended(skill, snapshot, elapsedTime, resourceReason, settings)
     : Boolean(skill.requirements) && !resourceReason;
   const isReplaced = skill.id !== baseSkill.id;
 

@@ -1,9 +1,9 @@
 import type { Skill } from "../../../types/skill";
-import type { SimSnapshot } from "../../../types/state";
+import type { SimSettings, SimSnapshot } from "../../../types/state";
 import type { KnightJobEffects } from "../../../data/knight/types";
 import { roundTime } from "../../time";
 import { createTimedBuff } from "../../effects";
-import { counterValue, isBuffActive } from "./knightState";
+import { computeOathGauge, counterValue, getOathAnchor, isBuffActive } from "./knightState";
 
 // コンボ成立時だけ付与されるバフ(ロイヤルアソリティ/プロミネンスのコンボボーナス)。
 // それ以外のバフ付与はすべてスキルの宣言的なeffects配列で完結するため、ここではこの
@@ -18,9 +18,22 @@ export function applyJobEffects(
   snapshotIn: SimSnapshot,
   elapsedTime: number,
   comboSuccess: boolean,
+  _leadInDuration: number,
+  autoAttackInterval: number,
 ): SimSnapshot {
   const effects = skill.jobEffects || {};
   let buffs = snapshotIn.buffs;
+  let jobState = snapshotIn.jobState;
+
+  // オウスゲージ消費(ホーリーシェルトロン/インターベンション/かばう等、gaugeCost.oathを
+  // 持つアクション)。現在値(アンカーからの経過時間で計算)から差し引き、消費時点を新しい
+  // アンカーとして記録する(以降はこの新アンカーからまた蓄積が始まる)。isResourceUnavailableで
+  // 既に不足していないことは確認済みの前提。
+  const oathCost = skill.gaugeCost?.oath;
+  if (oathCost) {
+    const current = computeOathGauge(getOathAnchor({ ...snapshotIn, jobState }), elapsedTime, autoAttackInterval);
+    jobState = { ...jobState, oathAnchor: { kind: "counter", value: Math.max(0, current - oathCost), expiresAt: elapsedTime } };
+  }
 
   if (effects.consumeBuffs) {
     for (const buffId of effects.consumeBuffs) {
@@ -39,8 +52,6 @@ export function applyJobEffects(
       }
     }
   }
-
-  let jobState = snapshotIn.jobState;
 
   // インペラトル: レクイエスカットを4スタックで新規付与する(表示名にスタック数を埋め込む)。
   if (effects.setRequiescatStacks !== undefined) {
@@ -94,4 +105,13 @@ export function resolveDynamicPotency(tag: string, snapshot: SimSnapshot, elapse
     return 100;
   }
   return 0;
+}
+
+// GaugePanel表示用。オウスゲージは経過時間+設定されたオートアタック間隔から連続的に算出する
+// (詳細はknightState.tsのcomputeOathGauge参照)。
+export function computeGaugeValue(gaugeKey: string, snapshot: SimSnapshot, elapsedTime: number, settings: SimSettings): number {
+  if (gaugeKey === "oath") {
+    return computeOathGauge(getOathAnchor(snapshot), elapsedTime, settings.autoAttackInterval);
+  }
+  return snapshot.gauges[gaugeKey] ?? 0;
 }

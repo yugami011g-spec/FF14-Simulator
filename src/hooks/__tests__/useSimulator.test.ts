@@ -147,7 +147,7 @@ describe("useSimulator (integration: hook wiring, not just the pure engine)", ()
             { id: "a", kind: "skill", skillId: "notARealSkill", usedAt: 0, preserveTiming: true },
             { id: "b", kind: "skill", skillId: "slice", usedAt: 0, preserveTiming: true },
           ],
-          settings: { leadInDuration: 0, combatDuration: 0, gcdSetting: 2.5 },
+          settings: { leadInDuration: 0, combatDuration: 0, gcdSetting: 2.5, autoAttackInterval: 2.08 },
         }),
       );
 

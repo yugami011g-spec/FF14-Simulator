@@ -111,7 +111,13 @@ function App() {
         onDeleteEntry={sim.dispatch.deleteAt}
       />
       <div className="dashboard-grid">
-        <GaugePanel job={job} snapshot={sim.displaySnapshot} />
+        <GaugePanel
+          job={job}
+          snapshot={sim.displaySnapshot}
+          elapsedTime={sim.displayTime}
+          settings={sim.settings}
+          onSettingsChange={sim.dispatch.updateSettings}
+        />
         <SkillPanel
           job={job}
           snapshot={sim.displaySnapshot}

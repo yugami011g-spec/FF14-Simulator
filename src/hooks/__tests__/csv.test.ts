@@ -4,7 +4,7 @@ import { replay } from "../../engine/replay";
 import { csvToEntries, historyToCsv } from "../csv";
 
 const job = reaperJobDefinition;
-const settings = { leadInDuration: 0, combatDuration: 0, gcdSetting: 2.5 };
+const settings = { leadInDuration: 0, combatDuration: 0, gcdSetting: 2.5, autoAttackInterval: 2.08 };
 
 describe("historyToCsv / csvToEntries", () => {
   it("round-trips a skill+wait rotation through CSV export and re-import", () => {

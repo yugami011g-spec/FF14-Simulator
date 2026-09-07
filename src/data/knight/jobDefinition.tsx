@@ -5,7 +5,8 @@ import { actionSlots } from "./actionSlots";
 import { buffNames } from "./buffNames";
 import { INITIAL_KNIGHT_JOB_STATE } from "../../engine/jobs/knight/knightState";
 import { matchesSlotCondition, isResourceUnavailable, normalizeTimedState, isRecommended } from "../../engine/jobs/knight/knightGating";
-import { applyJobEffects, resolveDynamicPotency } from "../../engine/jobs/knight/knightJobEffects";
+import { applyJobEffects, resolveDynamicPotency, computeGaugeValue } from "../../engine/jobs/knight/knightJobEffects";
+import { KnightGaugeExtras } from "./KnightGaugeExtras";
 
 export const knightJobDefinition: JobDefinition<KnightJobEffects> = {
   id: "knight",
@@ -13,8 +14,8 @@ export const knightJobDefinition: JobDefinition<KnightJobEffects> = {
   skills,
   actionSlots,
   gaugeDefs: [
-    // 現状は表示のみで増減ロジック未実装(常に0)。詳細はskills.ts先頭のスコープコメント、
-    // engineering/docs/multi-job-ui-design.md参照。
+    // 表示値はcomputeGaugeValue(オートアタック間隔設定に基づく連続蓄積)で算出する。
+    // 開幕(戦闘開始前を含む)は常に100からのスタート(INITIAL_KNIGHT_JOB_STATE.oathAnchor参照)。
     { key: "oath", label: "オウスゲージ", max: 100 },
   ],
   stackDefs: [],
@@ -26,4 +27,8 @@ export const knightJobDefinition: JobDefinition<KnightJobEffects> = {
   resolveDynamicPotency,
   normalizeTimedState,
   isRecommended,
+  computeGaugeValue,
+  renderCustomGaugeExtras: (_snapshot, _elapsedTime, settings, onSettingsChange) => (
+    <KnightGaugeExtras settings={settings} onSettingsChange={onSettingsChange} />
+  ),
 };

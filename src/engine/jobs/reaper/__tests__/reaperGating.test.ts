@@ -7,7 +7,7 @@ import type { SimSettings, SimSnapshot } from "../../../../types/state";
 
 // 実機観察に基づくアクション強調表示(is-combo)仕様の再現テスト。
 // 詳細: .company/engineering/docs/reaper-action-highlight-spec.md
-const settings: SimSettings = { leadInDuration: 0, combatDuration: 0, gcdSetting: 2.5 };
+const settings: SimSettings = { leadInDuration: 0, combatDuration: 0, gcdSetting: 2.5, autoAttackInterval: 2.08 };
 const T = 100;
 const skills = job.skills;
 

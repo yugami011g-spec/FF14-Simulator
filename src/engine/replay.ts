@@ -121,7 +121,7 @@ function stepSkill(
   working = { ...working, buffs: effectsResult.buffs, debuffs: effectsResult.debuffs };
   effectHistory = applyEffectHistoryOps(effectHistory, effectsResult.ops);
 
-  working = job.applyJobEffects(skill, working, elapsedTime, comboSuccess, settings.leadInDuration);
+  working = job.applyJobEffects(skill, working, elapsedTime, comboSuccess, settings.leadInDuration, settings.autoAttackInterval);
 
   const usedAt = elapsedTime;
   const animationLock = skill.animationLock ?? DEFAULT_ANIMATION_LOCK;

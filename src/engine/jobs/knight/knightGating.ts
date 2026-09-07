@@ -1,9 +1,14 @@
 import type { Skill } from "../../../types/skill";
-import type { SimSnapshot } from "../../../types/state";
+import type { SimSettings, SimSnapshot } from "../../../types/state";
 import type { KnightJobEffects } from "../../../data/knight/types";
 import { skills } from "../../../data/knight/skills";
 import { isComboSuccess } from "../../potency";
-import { counterExpiry, isBuffActive } from "./knightState";
+import { computeOathGauge, counterExpiry, getOathAnchor, isBuffActive } from "./knightState";
+
+// isRecommendedにsettingsが渡されなかった場合のフォールバック(useSimulator.tsのDEFAULT_SETTINGSと
+// 同じオートアタック間隔)。SkillButton.tsxからの通常呼び出しでは常にsettingsが渡されるため、
+// これは主にsettingsを渡さないテスト/呼び出し向けの保険。
+const FALLBACK_SETTINGS: SimSettings = { leadInDuration: 0, combatDuration: 0, gcdSetting: 2.5, autoAttackInterval: 2.08 };
 
 // レクイエスカットのスタック(jobStateのcounter)が期限切れなら0へ戻す(リーパーの
 // soulReaver/executionerと同じパターン)。スタックを使い切った場合はknightJobEffects.ts側で
@@ -35,31 +40,47 @@ export function matchesSlotCondition(condition: string, snapshot: SimSnapshot, e
   }
 }
 
-export function isResourceUnavailable(skill: Skill<KnightJobEffects>, snapshot: SimSnapshot, elapsedTime: number): string {
-  const flags = skill.requirements?.flags;
-  if (!flags) {
-    return "";
+export function isResourceUnavailable(
+  skill: Skill<KnightJobEffects>,
+  snapshot: SimSnapshot,
+  elapsedTime: number,
+  settings: SimSettings,
+): string {
+  const oathCost = skill.gaugeCost?.oath;
+  if (oathCost) {
+    const current = computeOathGauge(getOathAnchor(snapshot), elapsedTime, settings.autoAttackInterval);
+    if (current < oathCost) {
+      return `オウスゲージ不足（必要${oathCost}）`;
+    }
   }
-  // すべてのflagsキーは「同名のバフが有効であること」を表す(ゴアブレード実行可/ロイエ実行可/
-  // ゲベート実行可/グラブカッマー実行可/コンフィテオル実行可/ブレード・オブ・オナー実行可)。
-  for (const [key, required] of Object.entries(flags)) {
-    if (required && !isBuffActive(snapshot.buffs[key], elapsedTime)) {
-      return `${skill.name}の発動条件を満たしていません`;
+
+  const flags = skill.requirements?.flags;
+  if (flags) {
+    // すべてのflagsキーは「同名のバフが有効であること」を表す(ゴアブレード実行可/ロイエ実行可/
+    // ゲベート実行可/グラブカッマー実行可/コンフィテオル実行可/ブレード・オブ・オナー実行可)。
+    for (const [key, required] of Object.entries(flags)) {
+      if (required && !isBuffActive(snapshot.buffs[key], elapsedTime)) {
+        return `${skill.name}の発動条件を満たしていません`;
+      }
     }
   }
   return "";
 }
 
-// requirements(発動条件)を持つアクションは条件を満たした時点で、コンボ継続アクションは
-// コンボが繋がる時点で強調する。ハイブリッドの単純なデフォルト実装(リーパーほどの個別
-// チューニングはまだ行っていない)。
+// requirements(発動条件)・gaugeCostを持つアクションは条件を満たした時点で、コンボ継続
+// アクションはコンボが繋がる時点で強調する。ハイブリッドの単純なデフォルト実装(リーパーほどの
+// 個別チューニングはまだ行っていない)。
 export function isRecommended(
   skill: Skill<KnightJobEffects>,
   snapshot: SimSnapshot,
   elapsedTime: number,
   resourceReason?: string,
+  settings?: SimSettings,
 ): boolean {
-  const unavailable = resourceReason !== undefined ? resourceReason : isResourceUnavailable(skill, snapshot, elapsedTime);
+  const unavailable =
+    resourceReason !== undefined
+      ? resourceReason
+      : isResourceUnavailable(skill, snapshot, elapsedTime, settings ?? FALLBACK_SETTINGS);
   if (unavailable) {
     return false;
   }
@@ -68,7 +89,7 @@ export function isRecommended(
   if (skill.id === "holySpirit" || skill.id === "holyCircle") {
     return isBuffActive(snapshot.buffs.holyPower, elapsedTime) || isBuffActive(snapshot.buffs.requiescat, elapsedTime);
   }
-  if (skill.requirements) {
+  if (skill.requirements || skill.gaugeCost) {
     return true;
   }
   return isComboSuccess(skill, snapshot, elapsedTime);

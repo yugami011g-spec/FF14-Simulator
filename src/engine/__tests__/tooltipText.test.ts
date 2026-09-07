@@ -61,7 +61,7 @@ describe("buildTimelineWaitTooltip", () => {
 // リキャストタイム/効果)で組み立てる。現在の実行可否など状態依存の情報(旧statusLine/
 // isReady/requirementLines)は表示しない(実行可否はアイコンの明暗で判断できるため削除済み)。
 describe("buildSkillTooltipData: ジョブガイドと同じレイアウトで組み立てる", () => {
-  const settings: SimSettings = { leadInDuration: 0, combatDuration: 0, gcdSetting: 2.5 };
+  const settings: SimSettings = { leadInDuration: 0, combatDuration: 0, gcdSetting: 2.5, autoAttackInterval: 2.08 };
 
   it("通常のGCDウェポンスキル: 種類はウェポンスキル、キャストタイムはなし、リキャストタイムは実効GCD", () => {
     const data = buildSkillTooltipData(job.skills.slice, settings);

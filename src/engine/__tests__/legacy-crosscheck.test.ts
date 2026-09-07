@@ -7,7 +7,7 @@ import { counterValue } from "../jobs/reaper/reaperState";
 import type { SimSettings } from "../../types/state";
 import type { ReplayEntry } from "../../types/history";
 
-const settings: SimSettings = { leadInDuration: 0, combatDuration: 0, gcdSetting: 2.5 };
+const settings: SimSettings = { leadInDuration: 0, combatDuration: 0, gcdSetting: 2.5, autoAttackInterval: 2.08 };
 const job = reaperJobDefinition;
 
 // M5で実装するuseSkillディスパッチャの動作を再現する: 追加前に必ずgetLiveAppendRejectionReasonで

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { ActionSlot, Skill } from "./skill";
-import type { DisplayStatus, JobStateEntry, SimSnapshot, StatusEffect } from "./state";
+import type { DisplayStatus, JobStateEntry, SimSettings, SimSnapshot, StatusEffect } from "./state";
 
 export interface GaugeDef {
   key: string;
@@ -34,7 +34,9 @@ export interface JobDefinition<TJobEffects = Record<string, unknown>> {
   initialBuffs?: Record<string, StatusEffect>;
   matchesSlotCondition: (condition: string, snapshot: SimSnapshot, elapsedTime: number) => boolean;
   // combatDuration超過以外の、ゲージ/スタック/バフ条件等ジョブ固有のゲート判定。理由文字列 or ""。
-  isResourceUnavailable: (skill: Skill<TJobEffects>, snapshot: SimSnapshot, elapsedTime: number) => string;
+  // settingsは、オートアタック間隔設定に依存する時間経過型ゲージ(ナイトのオウス等)の
+  // 現在値計算に使う。使わないジョブは無視してよい。
+  isResourceUnavailable: (skill: Skill<TJobEffects>, snapshot: SimSnapshot, elapsedTime: number, settings: SimSettings) => string;
   // ゲージ消費/獲得、スタック増減、シュラウド突入/離脱などジョブ固有の状態遷移を一括適用し、
   // 新しいSimSnapshotを返す(引数のsnapshotは変更しない)。
   applyJobEffects: (
@@ -43,6 +45,7 @@ export interface JobDefinition<TJobEffects = Record<string, unknown>> {
     elapsedTime: number,
     comboSuccess: boolean,
     leadInDuration: number,
+    autoAttackInterval: number,
   ) => SimSnapshot;
   // skill.dynamicPotency のタグ(例: "immortalSacrifice")から実威力を計算する。
   // ジョブ固有の数式(スタック数依存など)をコアのpotency計算から切り離すためのフック。
@@ -54,10 +57,27 @@ export interface JobDefinition<TJobEffects = Record<string, unknown>> {
   // ジョブが未実装ならUI側は既存のヒューリスティック(requirements有無)にフォールバックする。
   // resourceReasonは呼び出し側がgetResourceUnavailableReasonで既に計算済みの場合に渡せる
   // (実装側は渡されればisResourceUnavailableの再実行を省略できる。省略時は内部で計算する)。
-  isRecommended?: (skill: Skill<TJobEffects>, snapshot: SimSnapshot, elapsedTime: number, resourceReason?: string) => boolean;
+  isRecommended?: (
+    skill: Skill<TJobEffects>,
+    snapshot: SimSnapshot,
+    elapsedTime: number,
+    resourceReason?: string,
+    settings?: SimSettings,
+  ) => boolean;
   // ジョブゲージパネルの、汎用StackDefドット描画では表現できない専用ビジュアル(例: リーパーの
   // レムール+ヴォイド合成バー)を差し込むフック。未指定ならstackDefsから汎用ドット列を自動生成する。
-  renderCustomGaugeExtras?: (snapshot: SimSnapshot) => ReactNode;
+  // settings/onSettingsChangeは、ナイトのオウスゲージのようにジョブ固有の調整項目(オートアタック
+  // 間隔等)をゲージパネル内に表示・変更させたい場合に使う。使わないジョブは無視してよい。
+  renderCustomGaugeExtras?: (
+    snapshot: SimSnapshot,
+    elapsedTime: number,
+    settings: SimSettings,
+    onSettingsChange: (patch: Partial<SimSettings>) => void,
+  ) => ReactNode;
+  // ゲージバーに表示する現在値を、snapshot.gauges[key]の生値ではなく独自に計算したい場合の
+  // フック(例: ナイトのオウスゲージは経過時間+設定されたオートアタック間隔から連続的に算出する)。
+  // 未指定ならsnapshot.gauges[key]をそのまま使う。
+  computeGaugeValue?: (gaugeKey: string, snapshot: SimSnapshot, elapsedTime: number, settings: SimSettings) => number;
   // jobState由来の派生ステータス(スタック数・タイマー等)をStatusPanelのバフ欄に表示する形へ
   // 変換するフック。戻り値はsnapshot.buffsの生データに追加される。未指定なら追加なし。
   getDisplayStatuses?: (snapshot: SimSnapshot, elapsedTime: number) => DisplayStatus[];

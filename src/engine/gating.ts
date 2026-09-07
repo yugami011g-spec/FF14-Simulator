@@ -45,7 +45,7 @@ export function getResourceUnavailableReason(
   if (settings.combatDuration > 0 && elapsedTime >= settings.combatDuration) {
     return "戦闘時間終了後は使用できません";
   }
-  return job.isResourceUnavailable(skill, snapshot, elapsedTime);
+  return job.isResourceUnavailable(skill, snapshot, elapsedTime, settings);
 }
 
 export function getUnavailableReason(

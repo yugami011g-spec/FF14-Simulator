@@ -6,7 +6,7 @@ import { isEnshrouded } from "../jobs/reaper/reaperState";
 import type { SimSettings } from "../../types/state";
 import type { ReplayEntry } from "../../types/history";
 
-const settings: SimSettings = { leadInDuration: 0, combatDuration: 0, gcdSetting: 2.5 };
+const settings: SimSettings = { leadInDuration: 0, combatDuration: 0, gcdSetting: 2.5, autoAttackInterval: 2.08 };
 const job = reaperJobDefinition;
 
 function withSkills(...skillIds: string[]): ReplayEntry[] {
@@ -82,7 +82,7 @@ describe("enshroud lifecycle (direct unit test of applyJobEffects, avoids fragil
   it("enterEnshroud grants 5 lemure stacks + a 30s window and costs 50 shroud gauge", () => {
     const base = initialSnapshot(settings, job);
     const withShroudGauge = { ...base, gauges: { ...base.gauges, shroud: 50 } };
-    const afterEnshroud = job.applyJobEffects(job.skills.enshroud, withShroudGauge, 0, false, settings.leadInDuration);
+    const afterEnshroud = job.applyJobEffects(job.skills.enshroud, withShroudGauge, 0, false, settings.leadInDuration, settings.autoAttackInterval);
 
     expect(afterEnshroud.gauges.shroud).toBe(0);
     expect(afterEnshroud.jobState.lemure).toEqual({ kind: "counter", value: 5 });
@@ -94,9 +94,9 @@ describe("enshroud lifecycle (direct unit test of applyJobEffects, avoids fragil
 
   it("voidReaping consumes 1 lemure, gains 1 void, and sets reapingCombo to cross", () => {
     const base = initialSnapshot(settings, job);
-    const enshrouded = job.applyJobEffects(job.skills.enshroud, { ...base, gauges: { ...base.gauges, shroud: 50 } }, 0, false, 0);
+    const enshrouded = job.applyJobEffects(job.skills.enshroud, { ...base, gauges: { ...base.gauges, shroud: 50 } }, 0, false, 0, 0);
 
-    const afterVoidReaping = job.applyJobEffects(job.skills.voidReaping, enshrouded, 2.5, false, 0);
+    const afterVoidReaping = job.applyJobEffects(job.skills.voidReaping, enshrouded, 2.5, false, 0, 0);
     expect(afterVoidReaping.jobState.lemure).toEqual({ kind: "counter", value: 4 });
     expect(afterVoidReaping.jobState.void).toEqual({ kind: "counter", value: 1 });
     expect(afterVoidReaping.jobState.reapingCombo).toEqual({ kind: "mode", value: "cross" });
@@ -104,10 +104,10 @@ describe("enshroud lifecycle (direct unit test of applyJobEffects, avoids fragil
 
   it("exitEnshroud (via communio) clears lemure/void/enshroudUntil/reapingCombo entirely", () => {
     const base = initialSnapshot(settings, job);
-    const enshrouded = job.applyJobEffects(job.skills.enshroud, { ...base, gauges: { ...base.gauges, shroud: 50 } }, 0, false, 0);
-    const afterVoidReaping = job.applyJobEffects(job.skills.voidReaping, enshrouded, 2.5, false, 0);
+    const enshrouded = job.applyJobEffects(job.skills.enshroud, { ...base, gauges: { ...base.gauges, shroud: 50 } }, 0, false, 0, 0);
+    const afterVoidReaping = job.applyJobEffects(job.skills.voidReaping, enshrouded, 2.5, false, 0, 0);
 
-    const afterCommunio = job.applyJobEffects(job.skills.communio, afterVoidReaping, 5, false, 0);
+    const afterCommunio = job.applyJobEffects(job.skills.communio, afterVoidReaping, 5, false, 0, 0);
     expect(afterCommunio.jobState.lemure).toEqual({ kind: "counter", value: 0 });
     expect(afterCommunio.jobState.void).toEqual({ kind: "counter", value: 0 });
     expect(afterCommunio.jobState.enshroudUntil).toEqual({ kind: "counter", value: 0 });

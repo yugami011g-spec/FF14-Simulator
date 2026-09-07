@@ -3,10 +3,11 @@ import { knightJobDefinition as job } from "../../../../data/knight/jobDefinitio
 import { appendSkillEntry } from "../../../editOps";
 import { initialSnapshot, replay } from "../../../replay";
 import { getActiveSkillByBaseId } from "../../../gating";
+import { computeOathGauge, getOathAnchor } from "../knightState";
 import type { SimSettings } from "../../../../types/state";
 import type { ReplayEntry } from "../../../../types/history";
 
-const settings: SimSettings = { leadInDuration: 0, combatDuration: 0, gcdSetting: 2.5 };
+const settings: SimSettings = { leadInDuration: 0, combatDuration: 0, gcdSetting: 2.5, autoAttackInterval: 2.08 };
 const T = 100;
 
 function withSkills(...skillIds: string[]): ReplayEntry[] {
@@ -256,5 +257,74 @@ describe("holy magic highlight", () => {
   it("is not recommended with neither buff active", () => {
     const snapshot = initialSnapshot(settings, job);
     expect(job.isRecommended?.(job.skills.holySpirit, snapshot, 0)).toBe(false);
+  });
+});
+
+describe("oath gauge (auto-attack-based accrual)", () => {
+  it("starts at 100 even before combat (negative elapsedTime) and at combat start", () => {
+    const snapshot = initialSnapshot(settings, job);
+    expect(computeOathGauge(getOathAnchor(snapshot), -3, settings.autoAttackInterval)).toBe(100);
+    expect(computeOathGauge(getOathAnchor(snapshot), 0, settings.autoAttackInterval)).toBe(100);
+  });
+
+  it("holySheltron spends 50 oath, resetting the regen anchor to the spend moment", () => {
+    const result = replay(withSkills("holySheltron"), settings, job);
+    expect(result.droppedNames).toEqual([]);
+    const anchor = getOathAnchor(result.final);
+    expect(anchor).toEqual({ value: 50, time: 0 });
+    expect(computeOathGauge(anchor, 0, settings.autoAttackInterval)).toBe(50);
+  });
+
+  it("regenerates +5 per autoAttackInterval elapsed since the last spend", () => {
+    const afterSpend = replay(withSkills("holySheltron"), settings, job).final; // anchor {value:50, time:0}
+    const interval = settings.autoAttackInterval; // 2.08s
+    // ちょうど1間隔ぶん経過(2.08秒)で+5、2間隔ぶん(4.16秒)で+10。端数は切り捨て。
+    expect(computeOathGauge(getOathAnchor(afterSpend), interval, interval)).toBe(55);
+    expect(computeOathGauge(getOathAnchor(afterSpend), interval * 2, interval)).toBe(60);
+    expect(computeOathGauge(getOathAnchor(afterSpend), interval * 2 - 0.01, interval)).toBe(55);
+  });
+
+  it("caps regeneration at 100", () => {
+    const afterSpend = replay(withSkills("holySheltron"), settings, job).final; // anchor {value:50, time:0}
+    expect(computeOathGauge(getOathAnchor(afterSpend), 1000, settings.autoAttackInterval)).toBe(100);
+  });
+
+  it("a shorter autoAttackInterval regenerates faster than a longer one", () => {
+    const anchor = { value: 50, time: 0 };
+    const fast = computeOathGauge(anchor, 20, 1.76);
+    const slow = computeOathGauge(anchor, 20, 2.4);
+    expect(fast).toBeGreaterThan(slow);
+  });
+
+  it("rejects holySheltron once spammed faster than it regenerates (direct unit test of applyJobEffects/isResourceUnavailable, avoids replay()'s handling of same-cooldown-group gaps)", () => {
+    const base = initialSnapshot(settings, job);
+    // 1回目(t=0): 100→50。
+    const afterFirst = job.applyJobEffects(job.skills.holySheltron, base, 0, false, 0, settings.autoAttackInterval);
+    expect(getOathAnchor(afterFirst)).toEqual({ value: 50, time: 0 });
+
+    // t=5時点: 50+floor(5/2.08)*5=60≧50なので利用可能。2回目(t=5): 60→10。
+    expect(job.isResourceUnavailable(job.skills.holySheltron, afterFirst, 5, settings)).toBe("");
+    const afterSecond = job.applyJobEffects(job.skills.holySheltron, afterFirst, 5, false, 0, settings.autoAttackInterval);
+    expect(getOathAnchor(afterSecond)).toEqual({ value: 10, time: 5 });
+
+    // t=10時点: 10+floor(5/2.08)*5=20<50なので3回目は拒否される。
+    expect(job.isResourceUnavailable(job.skills.holySheltron, afterSecond, 10, settings)).not.toBe("");
+  });
+
+  it("intervention and cover also gate on and spend 50 oath", () => {
+    const interventionResult = replay(withSkills("intervention"), settings, job);
+    expect(interventionResult.droppedNames).toEqual([]);
+    expect(getOathAnchor(interventionResult.final)).toEqual({ value: 50, time: 0 });
+
+    const coverResult = replay(withSkills("cover"), settings, job);
+    expect(coverResult.droppedNames).toEqual([]);
+    expect(getOathAnchor(coverResult.final)).toEqual({ value: 50, time: 0 });
+  });
+
+  it("GaugePanel's computeGaugeValue hook reflects the same live value", () => {
+    const afterSpend = replay(withSkills("holySheltron"), settings, job).final;
+    const viaHook = job.computeGaugeValue?.("oath", afterSpend, 10, settings);
+    const viaHelper = computeOathGauge(getOathAnchor(afterSpend), 10, settings.autoAttackInterval);
+    expect(viaHook).toBe(viaHelper);
   });
 });

@@ -9,7 +9,7 @@ import type { SimSettings } from "../../types/state";
 // 現在アクティブな(枠替え後の)スキルを引く。ホバー中のツールチップが枠替え後も最新の
 // スキルへ自動追従するために使う(枠替え後、ホバーを外し入れし直すまで古い内容のままに
 // なっていた不具合の再発防止)。
-const settings: SimSettings = { leadInDuration: 0, combatDuration: 0, gcdSetting: 2.5 };
+const settings: SimSettings = { leadInDuration: 0, combatDuration: 0, gcdSetting: 2.5, autoAttackInterval: 2.08 };
 const T = 100;
 
 describe("getActiveSkillByBaseId", () => {

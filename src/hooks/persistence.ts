@@ -36,6 +36,7 @@ export function loadPersistedState(job: JobDefinition<any>): PersistedState | nu
       leadInDuration: Number.isFinite(s.leadInDuration) ? s.leadInDuration : 0,
       combatDuration: Number.isFinite(s.combatDuration) ? s.combatDuration : 0,
       gcdSetting: Number.isFinite(s.gcdSetting) && s.gcdSetting > 0 ? s.gcdSetting : 2.5,
+      autoAttackInterval: Number.isFinite(s.autoAttackInterval) && s.autoAttackInterval > 0 ? s.autoAttackInterval : 2.08,
     };
     return { entries, settings };
   } catch {

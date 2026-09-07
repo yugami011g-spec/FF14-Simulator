@@ -3,15 +3,14 @@ import type { KnightJobEffects } from "./types";
 
 // Patch 7.5 / Lv100時点の公式ジョブガイドを基準にしたナイト用データです。
 //
-// スコープについて: このファイルはナイトの「与ダメージ(威力)に関わるアクション」のみを
-// 対象にした最初の実装です。以下は今回意図的に未実装です(engineering/docs/multi-job-ui-design.md
-// の実装ログ参照):
-// - 被ダメージ軽減・回復専門のアクション(ホーリーシェルトロン/インターベンション/センチネル系
-//   /かばう/ディヴァインヴェール/クレメンシー等)。このシミュレーターは被ダメージ・回復量を
-//   一切追跡しないため、実装しても総威力計算には影響しない。
-// - 上記に伴い、オウスゲージ(ジョブゲージ)は表示のみで、増減ロジック未実装(常に0)。
-//   実際のゲージ生成はオートアタック命中依存という通常のアクション消費/獲得型とは異なる
-//   仕組みのため、要件を確定してから実装する。
+// スコープについて: 与ダメージ(威力)アクション一式に加え、オウスゲージを消費する防御アクション
+// (ホーリーシェルトロン/インターベンション/かばう)・オウス不要な防御アクション(エクストリーム
+// ガード/ブルワーク/インビンシブル/ディヴァインヴェール)・ロールアクションを実装済み。
+// オウスゲージはオートアタック間隔(ユーザー設定、GaugePanel参照)からの連続蓄積として
+// engine/jobs/knight/knightState.tsのcomputeOathGaugeで計算する(詳細は
+// engineering/docs/multi-job-ui-design.mdの実装ログ参照)。以下は今回も未実装:
+// - センチネル(lv100ではエクストリームガードに置き換わるため対象外)、クレメンシー(純粋な
+//   回復アクションで被ダメージ・回復量を追跡しないこのシミュレーターでは総威力計算に影響しない)。
 // - サークル・オブ・ドゥームの継続ダメージ(DoT)部分。このエンジンには「時間経過で継続的に
 //   威力を加算する」ためのDoT tick機構がまだ存在しないため、初撃威力(140)のみ計算に含め、
 //   継続ダメージはofficialEffect(ツールチップ)上の情報にとどめている。
@@ -211,11 +210,40 @@ export const skills: Record<string, KnightSkill> = {
       "対象とその周囲の敵に範囲物理攻撃。　威力：450\n2体目以降の対象への威力は60％減少する。\n追加効果：自身のＭＰを回復する。",
   }),
 
-  // --- 防御バフ(アビリティ2行目) ---
+  // --- オウスゲージを消費する防御アクション(アビリティ2行目) ---
   // 被ダメージ・回復量はこのシミュレーターの追跡対象外(威力=0)。TLの効果時間帯には
-  // showOnTimeline:trueで表示されるようにする。オウスゲージを要求するホーリーシェルトロン/
-  // インターベンション/かばうは、ゲージの増加ロジックが未実装のため今回も対象外
-  // (engineering/docs/multi-job-ui-design.mdの実装ログ参照)。
+  // showOnTimeline:trueで表示されるようにする。
+  holySheltron: createAction("holySheltron", "ホーリーシェルトロン", "シェルトロン", "ability", 0, {
+    gcd: false,
+    recast: 5,
+    cooldownGroup: "holySheltron",
+    row: 1,
+    noTarget: true,
+    gaugeCost: { oath: 50 },
+    effects: [{ type: "buff", id: "holySheltron", name: "ホーリーシェルトロン", duration: 8, showOnTimeline: true }],
+    officialEffect:
+      "一定時間、自身の被ダメージを15％軽減させる。\n効果時間：8秒\n追加効果：自身に「ナイトの堅守」を付与する。\n効果時間：4秒\nナイトの堅守効果：対象の被ダメージを15％軽減する。\n追加効果：自身に「ナイトの加護」を付与する。\n効果時間：12秒\nナイトの加護効果：対象のＨＰを継続回復する。\n回復力：250\n発動条件：「オウス」50",
+  }),
+  intervention: createAction("intervention", "インターベンション", "インターベン", "ability", 0, {
+    gcd: false,
+    recast: 10,
+    cooldownGroup: "intervention",
+    row: 1,
+    gaugeCost: { oath: 50 },
+    effects: [{ type: "buff", id: "intervention", name: "インターベンション", duration: 8, showOnTimeline: true }],
+    officialEffect:
+      "パーティメンバーひとりを対象とする。\n対象の被ダメージを10％軽減する。　効果時間：8秒\n追加効果：自身にランパートまたはエクストリームガードが付与されている場合は効果量が10％上昇する。\n追加効果：対象に「ナイトの堅守」を付与する。\n効果時間：4秒\nナイトの堅守効果：対象の被ダメージを10％軽減する。\n追加効果：対象に「ナイトの加護」を付与する。\n効果時間：12秒\nナイトの加護効果：対象のＨＰを継続回復する。\n回復力：250\n発動条件：「オウス」50",
+  }),
+  cover: createAction("cover", "かばう", "かばう", "ability", 0, {
+    gcd: false,
+    recast: 120,
+    cooldownGroup: "cover",
+    row: 1,
+    gaugeCost: { oath: 50 },
+    effects: [{ type: "buff", id: "cover", name: "かばう", duration: 12, showOnTimeline: true }],
+    officialEffect:
+      "対象のパーティメンバーが受ける攻撃を肩代わりする。\nただし、一部の攻撃はかばうことができない。\n効果時間：12秒\n対象との距離が20mより離れると効果が発揮されない。\n発動条件：「オウス」50",
+  }),
   extremeGuard: createAction("extremeGuard", "エクストリームガード", "ガード", "ability", 0, {
     gcd: false,
     recast: 120,
@@ -263,17 +291,17 @@ export const skills: Record<string, KnightSkill> = {
     effects: [{ type: "buff", id: "rampart", name: "ランパート", duration: 20, showOnTimeline: true }],
     officialEffect: "一定時間、自身の被ダメージを20％軽減させる。\nさらに、自身が受けるＨＰ回復効果を15％上昇させる。　効果時間：20秒",
   }),
-  provoke: createAction("provoke", "挑発", "挑発", "ability", 0, {
-    category: "role",
-    recast: 30,
-    officialEffect: "対象を挑発し、自身への敵視を最高位にしたうえで、さらに自身への敵視を上昇させる。",
-  }),
   reprisal: createAction("reprisal", "リプライザル", "リプライザル", "ability", 0, {
     category: "role",
     recast: 60,
     noTarget: true,
     effects: [{ type: "debuff", id: "reprisal", name: "リプライザル", duration: 15, showOnTimeline: true }],
     officialEffect: "自身の周囲の敵の与ダメージを10％減少させる。　効果時間：15秒",
+  }),
+  provoke: createAction("provoke", "挑発", "挑発", "ability", 0, {
+    category: "role",
+    recast: 30,
+    officialEffect: "対象を挑発し、自身への敵視を最高位にしたうえで、さらに自身への敵視を上昇させる。",
   }),
   shirk: createAction("shirk", "シャーク", "シャーク", "ability", 0, {
     category: "role",

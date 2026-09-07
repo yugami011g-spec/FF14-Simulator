@@ -38,6 +38,9 @@ export interface SimSettings {
   leadInDuration: number;
   combatDuration: number;
   gcdSetting: number;
+  // オートアタック間隔(秒)。武器のディレイ依存で装備によって変わるため、現状これに依存する
+  // ジョブ(ナイトのオウスゲージ)のためにユーザーが直接調整できる設定値として持つ。
+  autoAttackInterval: number;
 }
 
 // StatusPanelのバフ/デバフ欄に出す1行分の表示データ。jobState由来の派生ステータス

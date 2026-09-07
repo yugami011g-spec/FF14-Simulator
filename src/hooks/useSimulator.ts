@@ -13,7 +13,7 @@ import {
 } from "../engine/editOps";
 import { loadPersistedState, savePersistedState } from "./persistence";
 
-const DEFAULT_SETTINGS: SimSettings = { leadInDuration: 0, combatDuration: 0, gcdSetting: 2.5 };
+const DEFAULT_SETTINGS: SimSettings = { leadInDuration: 0, combatDuration: 0, gcdSetting: 2.5, autoAttackInterval: 2.08 };
 
 export function useSimulator(job: JobDefinition<any>) {
   const [entries, setEntries] = useState<ReplayEntry[]>(() => loadPersistedState(job)?.entries ?? []);
@@ -119,6 +119,12 @@ export function useSimulator(job: JobDefinition<any>) {
     setSettings((prev) => ({ ...prev, gcdSetting: Math.round(next * 100) / 100 }));
   }
 
+  // ジョブ固有の調整項目(ナイトのオートアタック間隔等)向けの汎用パッチ更新。
+  // GaugePanelのrenderCustomGaugeExtrasフックにonSettingsChangeとして渡す。
+  function updateSettings(patch: Partial<SimSettings>) {
+    setSettings((prev) => ({ ...prev, ...patch }));
+  }
+
   return {
     entries,
     settings,
@@ -140,6 +146,7 @@ export function useSimulator(job: JobDefinition<any>) {
       updateLeadInDuration,
       updateCombatDuration,
       updateGcdSetting,
+      updateSettings,
       setDisplayTime,
     },
   };
