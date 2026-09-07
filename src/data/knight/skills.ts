@@ -119,10 +119,10 @@ export const skills: Record<string, KnightSkill> = {
     dynamicPotency: "holySpirit",
     castTime: 1.5,
     castTimeEnhancedBy: ["holyPower", "requiescat"],
-    // 神聖魔法効果アップは「次に実行する1回」限定の効果(officialEffect参照)なので、使用したら
-    // 消費する(レクイエスカットは4スタック性のため今回は消費対象に含めていない。詳細は
-    // engineering/docs/multi-job-ui-design.mdの実装ログ参照)。
-    jobEffects: { consumeBuffs: ["holyPower"] },
+    // 神聖魔法効果アップは「次に実行する1回」限定の効果(officialEffect参照)なので使用したら
+    // 消費する。レクイエスカットは4スタック性のため、消費対象はconsumeRequiescatStackで別途扱う
+    // (詳細はengineering/docs/multi-job-ui-design.mdの実装ログ参照)。
+    jobEffects: { consumeBuffs: ["holyPower"], consumeRequiescatStack: true },
     officialEffect:
       "対象に無属性魔法攻撃。　威力：400\n神聖魔法効果アップ時威力：500\nレクイエスカット時威力：700\n神聖魔法効果アップとレクイエスカットの両方が付与されている場合は、神聖魔法効果アップの効果が優先的に適用される。\n追加効果：自身のＨＰを回復する。　回復力：400",
   }),
@@ -130,7 +130,7 @@ export const skills: Record<string, KnightSkill> = {
     dynamicPotency: "holyCircle",
     castTime: 1.5,
     castTimeEnhancedBy: ["holyPower", "requiescat"],
-    jobEffects: { consumeBuffs: ["holyPower"] },
+    jobEffects: { consumeBuffs: ["holyPower"], consumeRequiescatStack: true },
     officialEffect:
       "自身の周囲の敵に無属性範囲魔法攻撃。　威力：100\n神聖魔法効果アップ時威力：250\nレクイエスカット時威力：350\n神聖魔法効果アップとレクイエスカットの両方が付与されている場合は、神聖魔法効果アップの効果が優先的に適用される。\n追加効果：自身のＨＰを回復する。　回復力：400",
   }),
@@ -138,10 +138,11 @@ export const skills: Record<string, KnightSkill> = {
     gcd: false,
     recast: 60,
     cooldownGroup: "imperator",
-    effects: [
-      { type: "buff", id: "requiescat", name: "レクイエスカット", duration: 30, showOnTimeline: false },
-      { type: "buff", id: "confiteorReady", name: "コンフィテオル実行可", duration: 30, showOnTimeline: false },
-    ],
+    effects: [{ type: "buff", id: "confiteorReady", name: "コンフィテオル実行可", duration: 30, showOnTimeline: false }],
+    // レクイエスカットは4スタック性の消費型リソースのため宣言的effectsではなくjobEffectsで
+    // 管理する(jobState.requiescatカウンタ+buffs.requiescatを連動させる。詳細は
+    // knightJobEffects.tsのapplyJobEffects参照)。
+    jobEffects: { setRequiescatStacks: 4 },
     officialEffect:
       "対象とその周囲の敵に無属性範囲魔法攻撃。　威力：580\n2体目以降の対象への威力は60％減少する。\n追加効果：自身に4スタックの「レクイエスカット」を付与する。\n効果時間：30秒\nレクイエスカット効果：魔法を詠唱時間無しで実行できる。\n加えて、ホーリースピリットとホーリーサークル、さらにコンフィテオルとそれ以降のコンボアクションの威力を上昇させる。\n追加効果：自身に「コンフィテオル実行可」を付与する。\n効果時間：30秒",
   }),
@@ -149,7 +150,7 @@ export const skills: Record<string, KnightSkill> = {
     buffEnhancedBy: "requiescat",
     buffEnhancedPotency: 1000,
     requirements: { flags: { confiteorReady: true } },
-    jobEffects: { consumeBuffs: ["confiteorReady"] },
+    jobEffects: { consumeBuffs: ["confiteorReady"], consumeRequiescatStack: true },
     comboStep: 21,
     officialEffect:
       "対象とその周囲の敵に無属性範囲魔法攻撃。　威力：500\nレクイエスカット時威力：1000\n2体目以降の対象への威力は60％減少する。\n追加効果：自身のＨＰを回復する。　回復力：400\n発動条件：「コンフィテオル実行可」効果中",
@@ -159,6 +160,7 @@ export const skills: Record<string, KnightSkill> = {
     buffEnhancedPotency: 760,
     requiredComboStep: 21,
     comboStep: 22,
+    jobEffects: { consumeRequiescatStack: true },
     officialEffect:
       "対象とその周囲の敵に無属性範囲魔法攻撃。　威力：260\nレクイエスカット時威力：760\n2体目以降の対象への威力は60％減少する。\nコンボ条件：コンフィテオル\n追加効果：自身のＨＰを回復する。　回復力：400\n\n※このアクションはホットバーに登録することはできない。\n　発動条件を満たすとコンフィテオルがブレード・オブ・フェイスに変化する。",
   }),
@@ -167,6 +169,7 @@ export const skills: Record<string, KnightSkill> = {
     buffEnhancedPotency: 880,
     requiredComboStep: 22,
     comboStep: 23,
+    jobEffects: { consumeRequiescatStack: true },
     officialEffect:
       "対象とその周囲の敵に無属性範囲魔法攻撃。　威力：380\nレクイエスカット時威力：880\n2体目以降の対象への威力は60％減少する。\nコンボ条件：ブレード・オブ・フェイス\n追加効果：自身のＨＰを回復する。　回復力：400\n\n※このアクションはホットバーに登録することはできない。\n　発動条件を満たすとブレード・オブ・フェイスがブレード・オブ・トゥルースに変化する。",
   }),
@@ -176,6 +179,7 @@ export const skills: Record<string, KnightSkill> = {
     requiredComboStep: 23,
     comboStep: 24,
     effects: [{ type: "buff", id: "bladeOfHonorReady", name: "ブレード・オブ・オナー実行可", duration: 30, showOnTimeline: false }],
+    jobEffects: { consumeRequiescatStack: true },
     officialEffect:
       "対象とその周囲の敵に無属性範囲魔法攻撃。　威力：500\nレクイエスカット時威力：1000\n2体目以降の対象への威力は60％減少する。\nコンボ条件：ブレード・オブ・トゥルース\n追加効果：自身のＨＰを回復する。　回復力：400\n追加効果：自身に「ブレード・オブ・オナー実行可」を付与する。\n効果時間：30秒\n\n※このアクションはホットバーに登録することはできない。\n　発動条件を満たすとブレード・オブ・トゥルースがブレード・オブ・ヴァラーに変化する。",
   }),

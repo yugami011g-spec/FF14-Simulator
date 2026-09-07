@@ -16,5 +16,10 @@ export function isBuffActive(effect: StatusEffect | undefined, elapsedTime: numb
 
 // コンフィテオル→ブレード・オブ・フェイス〜ヴァラーの進行は、独自のjobStateカウンタではなく
 // コア側の comboStep/requiredComboStep(通常の1-2-3コンボと同じ仕組み)をそのまま使う
-// (comboStep 21-24を専用レーンとして割り当て)。そのためオウスゲージ以外に固有jobStateは持たない。
-export const INITIAL_KNIGHT_JOB_STATE: Record<string, JobStateEntry> = {};
+// (comboStep 21-24を専用レーンとして割り当て)。
+// レクイエスカットは4スタック性の消費型リソース(インペラトルで4付与、コンフィテオル〜
+// ブレード・オブ・ヴァラーの4コンボとホーリースピリット/ホーリーサークルが1消費)のため、
+// リーパーのソウルリーヴァー等と同じくjobStateのcounterで管理する。
+export const INITIAL_KNIGHT_JOB_STATE: Record<string, JobStateEntry> = {
+  requiescat: { kind: "counter", value: 0, expiresAt: 0 },
+};

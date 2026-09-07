@@ -6,6 +6,8 @@ import { skills } from "./skills";
 const jobEffectBuffNames: Record<string, string> = {
   atonementReady: "ロイエ実行可",
   holyPower: "神聖魔法効果アップ",
+  // レクイエスカットは表示名にスタック数を埋め込むため動的だが、基本名はこちらに登録しておく。
+  requiescat: "レクイエスカット",
 };
 
 // バフ／デバフIDから表示名を引くための一覧です（ツールチップの条件表示に使います）。

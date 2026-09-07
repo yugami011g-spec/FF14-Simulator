@@ -3,12 +3,17 @@ import type { SimSnapshot } from "../../../types/state";
 import type { KnightJobEffects } from "../../../data/knight/types";
 import { skills } from "../../../data/knight/skills";
 import { isComboSuccess } from "../../potency";
-import { isBuffActive } from "./knightState";
+import { counterExpiry, isBuffActive } from "./knightState";
 
-// このスコープ(与ダメージ関連アクションのみ)ではオウスゲージ/スタックを消費するアクションが
-// ないため、時限式のjobState正規化は不要(何もしない)。将来ミティゲーション系アクションを
-// 追加する際はここにリーパーのnormalizeTimedStateと同様の処理を追加する。
-export function normalizeTimedState(snapshot: SimSnapshot, _elapsedTime: number): SimSnapshot {
+// レクイエスカットのスタック(jobStateのcounter)が期限切れなら0へ戻す(リーパーの
+// soulReaver/executionerと同じパターン)。スタックを使い切った場合はknightJobEffects.ts側で
+// 即座に0へ落とすため、このリセットは「スタックを使い切らないまま30秒経過した」場合の
+// 保険として働く。
+export function normalizeTimedState(snapshot: SimSnapshot, elapsedTime: number): SimSnapshot {
+  const requiescatExpiresAt = counterExpiry(snapshot, "requiescat");
+  if (requiescatExpiresAt && requiescatExpiresAt <= elapsedTime) {
+    return { ...snapshot, jobState: { ...snapshot.jobState, requiescat: { kind: "counter", value: 0, expiresAt: 0 } } };
+  }
   return snapshot;
 }
 
@@ -57,6 +62,11 @@ export function isRecommended(
   const unavailable = resourceReason !== undefined ? resourceReason : isResourceUnavailable(skill, snapshot, elapsedTime);
   if (unavailable) {
     return false;
+  }
+  // ホーリースピリット/ホーリーサークルはrequirements/comboを持たないため、上記の汎用ルールでは
+  // 拾えない。神聖魔法効果アップまたはレクイエスカットが有効な間は強調する。
+  if (skill.id === "holySpirit" || skill.id === "holyCircle") {
+    return isBuffActive(snapshot.buffs.holyPower, elapsedTime) || isBuffActive(snapshot.buffs.requiescat, elapsedTime);
   }
   if (skill.requirements) {
     return true;

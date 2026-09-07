@@ -203,3 +203,58 @@ describe("confiteor burst combo", () => {
     expect(job.skills.bladeOfHonor.gcd).toBe(false);
   });
 });
+
+describe("requiescat 4-stack management", () => {
+  it("grants exactly 4 stacks and depletes them 1-per-hit across the confiteor/blade combo", () => {
+    const result = replay(
+      withSkills("imperator", "confiteor", "bladeOfFaith", "bladeOfTruth", "bladeOfValor"),
+      settings,
+      job,
+    );
+    expect(result.final.jobState.requiescat).toMatchObject({ value: 0 });
+    // 4スタックをちょうど使い切った時点でバフ自体も除去される(まだ30秒経っていなくても)。
+    expect(result.final.buffs.requiescat).toBeUndefined();
+  });
+
+  it("shows the remaining stack count in the buff's display name as it's consumed", () => {
+    const afterImperator = replay(withSkills("imperator"), settings, job).final;
+    expect(afterImperator.buffs.requiescat?.name).toBe("レクイエスカット ×4");
+
+    const afterOneHolySpirit = replay(withSkills("imperator", "holySpirit"), settings, job).final;
+    expect(afterOneHolySpirit.buffs.requiescat?.name).toBe("レクイエスカット ×3");
+  });
+
+  it("holySpirit spends a shared stack, leaving fewer for the confiteor/blade combo", () => {
+    // インペラトル(4スタック)→ホーリースピリットを2回使って2消費→残り2スタックで
+    // コンフィテオル→フェイスまでは通常通りレクイエスカット威力が乗るが、トゥルースの時点で
+    // スタックが尽きて通常威力に落ちる。
+    const result = replay(
+      withSkills("imperator", "holySpirit", "holySpirit", "confiteor", "bladeOfFaith", "bladeOfTruth"),
+      settings,
+      job,
+    );
+    expect(result.history[3]).toMatchObject({ skillId: "confiteor", potency: 1000 });
+    expect(result.history[4]).toMatchObject({ skillId: "bladeOfFaith", potency: 760 });
+    expect(result.history[5]).toMatchObject({ skillId: "bladeOfTruth", potency: 380 });
+    expect(result.final.jobState.requiescat).toMatchObject({ value: 0 });
+  });
+
+});
+
+describe("holy magic highlight", () => {
+  it("is recommended when holyPower is active", () => {
+    const snapshot = replay(withSkills("fastBlade", "riotBlade", "royalAuthority"), settings, job).final;
+    expect(job.isRecommended?.(job.skills.holySpirit, snapshot, snapshot.elapsedTime)).toBe(true);
+    expect(job.isRecommended?.(job.skills.holyCircle, snapshot, snapshot.elapsedTime)).toBe(true);
+  });
+
+  it("is recommended when requiescat is active", () => {
+    const snapshot = replay(withSkills("imperator"), settings, job).final;
+    expect(job.isRecommended?.(job.skills.holySpirit, snapshot, snapshot.elapsedTime)).toBe(true);
+  });
+
+  it("is not recommended with neither buff active", () => {
+    const snapshot = initialSnapshot(settings, job);
+    expect(job.isRecommended?.(job.skills.holySpirit, snapshot, 0)).toBe(false);
+  });
+});
