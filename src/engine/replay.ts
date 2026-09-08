@@ -121,7 +121,21 @@ function stepSkill(
   working = { ...working, buffs: effectsResult.buffs, debuffs: effectsResult.debuffs };
   effectHistory = applyEffectHistoryOps(effectHistory, effectsResult.ops);
 
+  const beforeJobEffects = working;
   working = job.applyJobEffects(skill, working, elapsedTime, comboSuccess, settings.leadInDuration, settings.autoAttackInterval);
+  // job.applyJobEffects が(パッセージ・オブ・アームズの即時解除のように)既存バフ/デバフの
+  // expiresAt を直接短縮した場合、TLの効果時間帯(effectHistory)は上のapplyEffectHistoryOps
+  // では拾えない(あちらは宣言的なeffects配列由来の「延長」操作しか見ていないため)。ここで
+  // 短縮を検出し、同じ「extend」操作として反映することで状態パネルとTLの表示を一致させる。
+  effectHistory = applyEffectHistoryOps(
+    effectHistory,
+    (["buffs", "debuffs"] as const).flatMap((key) =>
+      Object.entries(working[key]).flatMap(([id, after]) => {
+        const before = beforeJobEffects[key][id];
+        return before && after.expiresAt < before.expiresAt ? [{ op: "extend" as const, id, expiresAt: after.expiresAt }] : [];
+      }),
+    ),
+  );
 
   const usedAt = elapsedTime;
   const animationLock = skill.animationLock ?? DEFAULT_ANIMATION_LOCK;

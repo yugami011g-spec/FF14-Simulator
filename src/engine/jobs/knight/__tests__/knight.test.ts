@@ -362,6 +362,11 @@ describe("passage of arms (cancels on the next executed action, not on waiting)"
     expect(fastBladeUsedAt).toBeLessThan(18);
     expect(result.final.buffs.passageOfArms?.expiresAt).toBe(fastBladeUsedAt);
     expect(isBuffActive(result.final.buffs.passageOfArms, result.final.elapsedTime)).toBe(false);
+
+    // 状態パネル(snapshot.buffs)だけでなく、TLの効果時間帯(effectHistory)も同じ時刻で
+    // 短縮されていること(TLに元の18秒のまま残ってしまう不具合の再発防止)。
+    const timelineEntry = result.effectHistory.find((effect) => effect.id === "passageOfArms");
+    expect(timelineEntry?.expiresAt).toBe(fastBladeUsedAt);
   });
 
   it("is NOT cancelled by waiting (waiting is how you extend how long you hold it)", () => {
