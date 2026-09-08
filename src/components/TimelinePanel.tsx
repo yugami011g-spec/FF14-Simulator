@@ -68,18 +68,22 @@ export function TimelinePanel({
   const trackWidth = TIMELINE_BASE_WIDTH * (contentDuration / TIMELINE_DURATION);
   const latestPositionPx = (Math.max(0, Math.min((displayTime - contentStart) / contentDuration, 1))) * trackWidth;
 
-  // ライブ入力(スキル/待機の追加)でタイムラインが伸びたときだけ、最新位置(表示位置インジケーター)が
-  // 見える位置まで自動で右へスクロール追従する。ベースの表示尺(35秒分)自体は常に確保されているため、
+  // ライブ入力(スキル/待機の追加)でタイムラインが伸びたとき、または過去確認スクラブ中から
+  // 「先頭へ移動」で最新位置に戻ったときに、最新位置(表示位置インジケーター)が見える位置まで
+  // 自動で右へスクロール追従する。ベースの表示尺(35秒分)自体は常に確保されているため、
   // scrollWidth基準で末尾へ飛ばすと、実際にはまだ短い回しでもベース末尾(35秒地点)まで飛んでしまう
   // ―― そのため実際の最新位置の座標を基準にする。プレビュー中(過去確認スクラブ中)は追従しない。
   // latestPositionPxはアイコンの「左端」(usedAt/castStartAt)の座標で、アイコン自体はそこから
   // 右へ最大44px(GCDアイコン幅)描画されるため、右端が見切れないよう分だけ余白を足す。
   const prevHistoryLengthRef = useRef(history.length);
+  const prevIsPreviewingRef = useRef(isPreviewing);
   useEffect(() => {
     const grew = history.length > prevHistoryLengthRef.current;
+    const returnedToLatest = prevIsPreviewingRef.current && !isPreviewing;
     prevHistoryLengthRef.current = history.length;
+    prevIsPreviewingRef.current = isPreviewing;
     const scrollEl = scrollRef.current;
-    if (grew && !isPreviewing && scrollEl) {
+    if ((grew || returnedToLatest) && !isPreviewing && scrollEl) {
       const iconWidth = 44;
       const breathingRoom = 30;
       scrollEl.scrollLeft = Math.max(0, latestPositionPx + iconWidth + breathingRoom - scrollEl.clientWidth);
