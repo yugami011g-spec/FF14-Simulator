@@ -247,15 +247,25 @@ export const skills: Record<string, KnightSkill> = {
     officialEffect:
       "パーティメンバーひとりを対象とする。\n対象の被ダメージを10％軽減する。　効果時間：8秒\n追加効果：自身にランパートまたはエクストリームガードが付与されている場合は効果量が10％上昇する。\n追加効果：対象に「ナイトの堅守」を付与する。\n効果時間：4秒\nナイトの堅守効果：対象の被ダメージを10％軽減する。\n追加効果：対象に「ナイトの加護」を付与する。\n効果時間：12秒\nナイトの加護効果：対象のＨＰを継続回復する。\n回復力：250\n発動条件：「オウス」50",
   }),
-  cover: createAction("cover", "かばう", "かばう", "ability", 0, {
+  // 以下、防御アビリティ(2行目)はリキャストタイムの短い順に並べる。
+  bulwark: createAction("bulwark", "ブルワーク", "ブルワーク", "ability", 0, {
     gcd: false,
-    recast: 120,
-    cooldownGroup: "cover",
+    recast: 90,
+    cooldownGroup: "bulwark",
     row: 1,
-    gaugeCost: { oath: 50 },
-    effects: [{ type: "buff", id: "cover", name: "かばう", duration: 12, showOnTimeline: true }],
+    noTarget: true,
+    effects: [{ type: "buff", id: "bulwark", name: "ブルワーク", duration: 10, showOnTimeline: true }],
+    officialEffect: "一定時間、受ける攻撃を必ずブロックする。　効果時間：10秒",
+  }),
+  divineVeil: createAction("divineVeil", "ディヴァインヴェール", "ヴェール", "ability", 0, {
+    gcd: false,
+    recast: 90,
+    cooldownGroup: "divineVeil",
+    row: 1,
+    noTarget: true,
+    effects: [{ type: "buff", id: "divineVeil", name: "ディヴァインヴェール", duration: 30, showOnTimeline: true }],
     officialEffect:
-      "対象のパーティメンバーが受ける攻撃を肩代わりする。\nただし、一部の攻撃はかばうことができない。\n効果時間：12秒\n対象との距離が20mより離れると効果が発揮されない。\n発動条件：「オウス」50",
+      "自身と周囲のパーティメンバーに、一定量のダメージを防ぐバリアを張る。\nこのバリアはナイト自身の最大ＨＰの10％分のダメージを軽減する。　効果時間：30秒\n追加効果：対象のＨＰを回復する。　回復力：400",
   }),
   extremeGuard: createAction("extremeGuard", "エクストリームガード", "ガード", "ability", 0, {
     gcd: false,
@@ -267,14 +277,31 @@ export const skills: Record<string, KnightSkill> = {
     officialEffect:
       "一定時間、自身の被ダメージを40％軽減させる。\n効果時間：15秒\n追加効果：自身に一定量のダメージを防ぐバリアを張る。\nバリア量：回復力1000相当　効果時間：15秒",
   }),
-  bulwark: createAction("bulwark", "ブルワーク", "ブルワーク", "ability", 0, {
+  passageOfArms: createAction("passageOfArms", "パッセージ・オブ・アームズ", "パッセージ", "ability", 0, {
     gcd: false,
-    recast: 90,
-    cooldownGroup: "bulwark",
+    recast: 120,
+    cooldownGroup: "passageOfArms",
     row: 1,
     noTarget: true,
-    effects: [{ type: "buff", id: "bulwark", name: "ブルワーク", duration: 10, showOnTimeline: true }],
-    officialEffect: "一定時間、受ける攻撃を必ずブロックする。　効果時間：10秒",
+    // 最大18秒だが、公式仕様上「効果時間中にアクションの実行や移動・ターンを行うと即座に解除
+    // される」という他に類のない性質を持つ。このシミュレーターは待機(何もしない時間経過)と
+    // アクション使用を区別できるため、knightJobEffects.tsのapplyJobEffects冒頭で「このスキル
+    // 自身以外のアクションが実行された時点でpassageOfArmsの残り時間を今に切り詰める」処理を
+    // 汎用的に行うことで再現する(待機エントリを挟めば、その分だけ保持時間を延ばせる=
+    // 待機時間で持続を伸ばす形になる)。
+    effects: [{ type: "buff", id: "passageOfArms", name: "パッセージ・オブ・アームズ", duration: 18, showOnTimeline: true }],
+    officialEffect:
+      "自身の後方扇範囲に被ダメージを軽減するシールドを生成する。\n効果時間中、自身のブロック発動率が100％になり、さらに範囲内にいるパーティメンバーの被ダメージを15％軽減する。\n効果時間：18秒\n効果時間中にアクションの実行や移動・ターンを行うと、パッセージ・オブ・アームズは即座に解除される。\n実行後にオートアタックを停止する。",
+  }),
+  cover: createAction("cover", "かばう", "かばう", "ability", 0, {
+    gcd: false,
+    recast: 120,
+    cooldownGroup: "cover",
+    row: 1,
+    gaugeCost: { oath: 50 },
+    effects: [{ type: "buff", id: "cover", name: "かばう", duration: 12, showOnTimeline: true }],
+    officialEffect:
+      "対象のパーティメンバーが受ける攻撃を肩代わりする。\nただし、一部の攻撃はかばうことができない。\n効果時間：12秒\n対象との距離が20mより離れると効果が発揮されない。\n発動条件：「オウス」50",
   }),
   hallowedGround: createAction("hallowedGround", "インビンシブル", "インビン", "ability", 0, {
     gcd: false,
@@ -284,16 +311,6 @@ export const skills: Record<string, KnightSkill> = {
     noTarget: true,
     effects: [{ type: "buff", id: "hallowedGround", name: "インビンシブル", duration: 10, showOnTimeline: true }],
     officialEffect: "一定時間、自身への一部を除くすべてのダメージを無効化する。　効果時間：10秒",
-  }),
-  divineVeil: createAction("divineVeil", "ディヴァインヴェール", "ヴェール", "ability", 0, {
-    gcd: false,
-    recast: 90,
-    cooldownGroup: "divineVeil",
-    row: 1,
-    noTarget: true,
-    effects: [{ type: "buff", id: "divineVeil", name: "ディヴァインヴェール", duration: 30, showOnTimeline: true }],
-    officialEffect:
-      "自身と周囲のパーティメンバーに、一定量のダメージを防ぐバリアを張る。\nこのバリアはナイト自身の最大ＨＰの10％分のダメージを軽減する。　効果時間：30秒\n追加効果：対象のＨＰを回復する。　回復力：400",
   }),
 
   // --- ロールアクション(タンク共通)・薬 ---

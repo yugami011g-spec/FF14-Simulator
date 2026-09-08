@@ -25,6 +25,15 @@ export function applyJobEffects(
   let buffs = snapshotIn.buffs;
   let jobState = snapshotIn.jobState;
 
+  // パッセージ・オブ・アームズ: 公式仕様上「効果時間中に(このスキル自身以外の)アクションを
+  // 実行すると即座に解除される」ため、まだ効果が残っている状態で何か別のアクションが使われたら
+  // 残り時間をこの時刻に切り詰める(待機エントリはapplyJobEffects自体を呼ばないため解除されず、
+  // 待機時間ぶんだけ保持時間を延ばせる形になる)。
+  const passageOfArms = buffs.passageOfArms;
+  if (skill.id !== "passageOfArms" && passageOfArms && passageOfArms.expiresAt > elapsedTime) {
+    buffs = { ...buffs, passageOfArms: { ...passageOfArms, expiresAt: elapsedTime } };
+  }
+
   // オウスゲージ消費(ホーリーシェルトロン/インターベンション/かばう等、gaugeCost.oathを
   // 持つアクション)。現在値(アンカーからの経過時間で計算)から差し引き、消費時点を新しい
   // アンカーとして記録する(以降はこの新アンカーからまた蓄積が始まる)。isResourceUnavailableで

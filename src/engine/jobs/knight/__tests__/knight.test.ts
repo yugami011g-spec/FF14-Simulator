@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { knightJobDefinition as job } from "../../../../data/knight/jobDefinition";
-import { appendSkillEntry } from "../../../editOps";
+import { appendSkillEntry, appendWaitEntry } from "../../../editOps";
 import { initialSnapshot, replay } from "../../../replay";
 import { getActiveSkillByBaseId } from "../../../gating";
-import { computeOathGauge, getOathAnchor } from "../knightState";
+import { computeOathGauge, getOathAnchor, isBuffActive } from "../knightState";
 import type { SimSettings } from "../../../../types/state";
 import type { ReplayEntry } from "../../../../types/history";
 
@@ -340,5 +340,51 @@ describe("oath gauge (auto-attack-based accrual)", () => {
     const viaHook = job.computeGaugeValue?.("oath", afterSpend, 10, settings);
     const viaHelper = computeOathGauge(getOathAnchor(afterSpend), 10, settings.autoAttackInterval);
     expect(viaHook).toBe(viaHelper);
+  });
+});
+
+describe("passage of arms (cancels on the next executed action, not on waiting)", () => {
+  it("grants the full 18s buff on its own use", () => {
+    const result = replay(withSkills("passageOfArms"), settings, job);
+    expect(result.droppedNames).toEqual([]);
+    expect(result.final.buffs.passageOfArms?.expiresAt).toBe(18);
+  });
+
+  it("is cut short the moment any other action is executed", () => {
+    let entries = appendSkillEntry([], "passageOfArms");
+    entries = appendSkillEntry(entries, "fastBlade");
+    const result = replay(entries, settings, job);
+    expect(result.droppedNames).toEqual([]);
+    // fastBladeはパッセージ・オブ・アームズのアニメーションロック明け(約0.67秒)に着地するため、
+    // 残り時間はそこで切り詰められる(元々の18秒より大幅に短い)。
+    const fastBladeUsedAt = result.history.find((entry) => entry.kind === "skill" && entry.skillId === "fastBlade")?.usedAt;
+    expect(fastBladeUsedAt).toBeGreaterThan(0);
+    expect(fastBladeUsedAt).toBeLessThan(18);
+    expect(result.final.buffs.passageOfArms?.expiresAt).toBe(fastBladeUsedAt);
+    expect(isBuffActive(result.final.buffs.passageOfArms, result.final.elapsedTime)).toBe(false);
+  });
+
+  it("is NOT cancelled by waiting (waiting is how you extend how long you hold it)", () => {
+    let entries = appendSkillEntry([], "passageOfArms");
+    entries = appendWaitEntry(entries, 10);
+    const result = replay(entries, settings, job);
+    expect(result.final.buffs.passageOfArms?.expiresAt).toBe(18);
+    expect(isBuffActive(result.final.buffs.passageOfArms, result.final.elapsedTime)).toBe(true);
+  });
+
+  it("truncates at whatever later time the next action lands at, if a wait preceded it", () => {
+    let entries = appendSkillEntry([], "passageOfArms");
+    entries = appendWaitEntry(entries, 10);
+    entries = appendSkillEntry(entries, "fastBlade");
+    const result = replay(entries, settings, job);
+    expect(result.final.buffs.passageOfArms?.expiresAt).toBe(10);
+  });
+
+  it("still caps at 18s even if you wait well past it (natural expiry, not the cancel logic)", () => {
+    let entries = appendSkillEntry([], "passageOfArms");
+    entries = appendWaitEntry(entries, 30);
+    const result = replay(entries, settings, job);
+    expect(result.final.buffs.passageOfArms?.expiresAt).toBe(18);
+    expect(isBuffActive(result.final.buffs.passageOfArms, result.final.elapsedTime)).toBe(false);
   });
 });
