@@ -275,6 +275,20 @@ describe("oath gauge (auto-attack-based accrual)", () => {
     expect(computeOathGauge(anchor, 0, settings.autoAttackInterval)).toBe(50);
   });
 
+  it("holySheltron/intervention grant 3 separately-timed named buffs instead of one bundled buff", () => {
+    // 公式ジョブガイド通り、本体(8秒)とは別に「ナイトの堅守」(4秒)・「ナイトの加護」(12秒)という
+    // 固有名の別ステータスが付与される。状態パネルで個別に確認できる必要がある。
+    const afterHolySheltron = replay(withSkills("holySheltron"), settings, job).final;
+    expect(afterHolySheltron.buffs.holySheltron?.expiresAt).toBe(8);
+    expect(afterHolySheltron.buffs.knightsResolve?.expiresAt).toBe(4);
+    expect(afterHolySheltron.buffs.knightsBlessing?.expiresAt).toBe(12);
+
+    const afterIntervention = replay(withSkills("intervention"), settings, job).final;
+    expect(afterIntervention.buffs.intervention?.expiresAt).toBe(8);
+    expect(afterIntervention.buffs.knightsResolve?.expiresAt).toBe(4);
+    expect(afterIntervention.buffs.knightsBlessing?.expiresAt).toBe(12);
+  });
+
   it("regenerates +5 per autoAttackInterval elapsed since the last spend", () => {
     const afterSpend = replay(withSkills("holySheltron"), settings, job).final; // anchor {value:50, time:0}
     const interval = settings.autoAttackInterval; // 2.08s

@@ -220,7 +220,14 @@ export const skills: Record<string, KnightSkill> = {
     row: 1,
     noTarget: true,
     gaugeCost: { oath: 50 },
-    effects: [{ type: "buff", id: "holySheltron", name: "ホーリーシェルトロン", duration: 8, showOnTimeline: true }],
+    // 公式ジョブガイドの記載通り、本体の被ダメージ軽減(8秒)とは別に「ナイトの堅守」(4秒)・
+    // 「ナイトの加護」(12秒、継続回復)という2つの固有名を持つ別ステータスが付与される。
+    // それぞれ効果時間が異なるため、状態パネル・TLで個別に確認できるよう3つに分けて宣言する。
+    effects: [
+      { type: "buff", id: "holySheltron", name: "ホーリーシェルトロン", duration: 8, showOnTimeline: true },
+      { type: "buff", id: "knightsResolve", name: "ナイトの堅守", duration: 4, showOnTimeline: true },
+      { type: "buff", id: "knightsBlessing", name: "ナイトの加護", duration: 12, showOnTimeline: true },
+    ],
     officialEffect:
       "一定時間、自身の被ダメージを15％軽減させる。\n効果時間：8秒\n追加効果：自身に「ナイトの堅守」を付与する。\n効果時間：4秒\nナイトの堅守効果：対象の被ダメージを15％軽減する。\n追加効果：自身に「ナイトの加護」を付与する。\n効果時間：12秒\nナイトの加護効果：対象のＨＰを継続回復する。\n回復力：250\n発動条件：「オウス」50",
   }),
@@ -230,7 +237,13 @@ export const skills: Record<string, KnightSkill> = {
     cooldownGroup: "intervention",
     row: 1,
     gaugeCost: { oath: 50 },
-    effects: [{ type: "buff", id: "intervention", name: "インターベンション", duration: 8, showOnTimeline: true }],
+    // ホーリーシェルトロンと同じく「ナイトの堅守」「ナイトの加護」という別名義のステータスが
+    // 付与される(idはholySheltron側と共通。同一ステータスなので併用時は延長として扱われる)。
+    effects: [
+      { type: "buff", id: "intervention", name: "インターベンション", duration: 8, showOnTimeline: true },
+      { type: "buff", id: "knightsResolve", name: "ナイトの堅守", duration: 4, showOnTimeline: true },
+      { type: "buff", id: "knightsBlessing", name: "ナイトの加護", duration: 12, showOnTimeline: true },
+    ],
     officialEffect:
       "パーティメンバーひとりを対象とする。\n対象の被ダメージを10％軽減する。　効果時間：8秒\n追加効果：自身にランパートまたはエクストリームガードが付与されている場合は効果量が10％上昇する。\n追加効果：対象に「ナイトの堅守」を付与する。\n効果時間：4秒\nナイトの堅守効果：対象の被ダメージを10％軽減する。\n追加効果：対象に「ナイトの加護」を付与する。\n効果時間：12秒\nナイトの加護効果：対象のＨＰを継続回復する。\n回復力：250\n発動条件：「オウス」50",
   }),
